@@ -1,0 +1,50 @@
+name: Daily Video Pipeline
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # 6:00 AM UTC daily
+  workflow_dispatch:       # allow manual trigger
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg libgdal-dev python3-dev
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: python -m pipeline.main
+
+      - name: Commit updated run log
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add logs/run_log.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update run log [skip ci]"
+          git push

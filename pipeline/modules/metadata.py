@@ -1,0 +1,106 @@
+"""
+metadata.py — Generates YouTube metadata (title, description, tags) for both videos.
+
+Uses Gemini to create compelling, SEO-optimized metadata.
+"""
+
+import json
+import re
+
+import google.generativeai as genai
+
+from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
+
+
+def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
+    """Generate metadata for both long-form and Short videos.
+
+    Args:
+        topic_info: Dict with topic, description, source, url.
+        extreme_segment: Dict with start_year, end_year, reason, hook.
+
+    Returns:
+        Dict with keys 'long_form' and 'short', each containing
+        title, description, and tags.
+
+    Raises:
+        RuntimeError: If Gemini fails to generate valid metadata.
+    """
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
+
+    genai.configure(api_key=GEMINI_API_KEY)
+    model = genai.GenerativeModel(GEMINI_MODEL)
+
+    prompt = f"""Generate YouTube video metadata for TWO videos about the same dataset.
+
+Topic: {topic_info.get('topic', '')}
+Description: {topic_info.get('description', '')}
+Data source: {topic_info.get('source', '')}
+Full date range: from the dataset
+Extreme segment: {extreme_segment.get('start_year', '')} to {extreme_segment.get('end_year', '')}
+Extreme reason: {extreme_segment.get('reason', '')}
+Hook: {extreme_segment.get('hook', '')}
+
+VIDEO 1 — LONG FORM (5-10 min, full dataset visualization):
+- Title: informative, specific, includes date range. Example style: "How World GDP Changed From 1960 to 2023"
+- Description: 3-4 sentences explaining what the data shows, why it matters. Include data source credit at the end.
+- Tags: 10-15 relevant tags for SEO
+
+VIDEO 2 — SHORT (60 sec, highlights the extreme segment):
+- Title: punchy, hook-driven, highlights the most dramatic moment. Must end with " #Shorts". Example: "China Overtook Japan's Economy In Just 15 Years #Shorts"
+- Description: 2 sentences max
+- Tags: 10 relevant tags
+
+Return ONLY valid JSON:
+{{
+  "long_form": {{
+    "title": "...",
+    "description": "...",
+    "tags": ["tag1", "tag2", ...]
+  }},
+  "short": {{
+    "title": "... #Shorts",
+    "description": "...",
+    "tags": ["tag1", "tag2", ...]
+  }}
+}}
+"""
+
+    try:
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.7,
+                max_output_tokens=2048,
+            ),
+        )
+    except Exception as e:
+        raise RuntimeError(f"Gemini metadata generation failed: {e}") from e
+
+    raw = response.text.strip()
+    if raw.startswith("```"):
+        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+        raw = re.sub(r"\s*```$", "", raw)
+
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as e:
+        raise RuntimeError(f"Invalid JSON from Gemini:\n{raw}\nError: {e}") from e
+
+    # Validate structure
+    for key in ("long_form", "short"):
+        if key not in result:
+            raise RuntimeError(f"Missing '{key}' in metadata response.")
+        for field in ("title", "description", "tags"):
+            if field not in result[key]:
+                raise RuntimeError(f"Missing '{field}' in metadata['{key}'].")
+
+    # Ensure Short title ends with #Shorts
+    if not result["short"]["title"].rstrip().endswith("#Shorts"):
+        result["short"]["title"] = result["short"]["title"].rstrip() + " #Shorts"
+
+    print(f"[metadata] Long title: {result['long_form']['title']}")
+    print(f"[metadata] Short title: {result['short']['title']}")
+
+    return result
