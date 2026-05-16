@@ -123,12 +123,20 @@ Rules:
 Return ONLY the chart type name, nothing else.
 """
 
-    try:
-        response = model.generate_content(prompt)
-        result = response.text.strip().lower().replace('"', "").replace("'", "")
-        if result in CHART_TYPES:
-            return result
-    except Exception as e:
-        print(f"[chart_selector] Gemini tiebreak failed: {e}")
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            result = response.text.strip().lower().replace('"', "").replace("'", "")
+            if result in CHART_TYPES:
+                return result
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"[chart_selector] Gemini tiebreak failed after {max_retries} attempts: {e}")
+            else:
+                print(f"[chart_selector] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
+                time.sleep(30)
 
     return default

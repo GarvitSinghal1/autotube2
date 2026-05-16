@@ -221,17 +221,23 @@ Return ONLY a JSON object:
 {{"date_col": "column_name", "entity_col": "column_name", "value_col": "column_name"}}
 """
 
-    try:
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        if raw.startswith("```"):
-            raw = re.sub(r"^```(?:json)?\s*", "", raw)
-            raw = re.sub(r"\s*```$", "", raw)
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(prompt)
+            raw = response.text.strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\s*", "", raw)
+                raw = re.sub(r"\s*```$", "", raw)
 
-        result = json.loads(raw)
-        return result["date_col"], result["entity_col"], result.get("value_col")
-    except Exception as e:
-        raise RuntimeError(f"Gemini column detection failed: {e}") from e
+            result = json.loads(raw)
+            return result["date_col"], result["entity_col"], result.get("value_col")
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Gemini column detection failed after {max_retries} attempts: {e}") from e
+            print(f"[cleaner] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(30)
 
 
 def _melt_wide_format(

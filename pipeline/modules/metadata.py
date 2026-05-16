@@ -67,16 +67,23 @@ Return ONLY valid JSON:
 }}
 """
 
-    try:
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                max_output_tokens=2048,
-            ),
-        )
-    except Exception as e:
-        raise RuntimeError(f"Gemini metadata generation failed: {e}") from e
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(
+                prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.7,
+                    max_output_tokens=2048,
+                ),
+            )
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Gemini metadata generation failed after {max_retries} attempts: {e}") from e
+            print(f"[metadata] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(30)
 
     raw = response.text.strip()
     if raw.startswith("```"):

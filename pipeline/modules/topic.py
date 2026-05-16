@@ -70,16 +70,23 @@ def discover_topic() -> dict:
         system_instruction=SYSTEM_PROMPT,
     )
 
-    try:
-        response = model.generate_content(
-            USER_PROMPT,
-            generation_config=genai.types.GenerationConfig(
-                temperature=1.0,  # high creativity for diverse topics
-                max_output_tokens=1024,
-            ),
-        )
-    except Exception as e:
-        raise RuntimeError(f"Gemini API call failed: {e}") from e
+    import time
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = model.generate_content(
+                USER_PROMPT,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=1.0,  # high creativity for diverse topics
+                    max_output_tokens=1024,
+                ),
+            )
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Gemini API call failed after {max_retries} attempts: {e}") from e
+            print(f"[topic] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(30)
 
     raw_text = response.text.strip()
 
