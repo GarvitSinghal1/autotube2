@@ -87,9 +87,7 @@ def discover_topic() -> dict:
                 contents=user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
-                    temperature=1.0,
-                    max_output_tokens=1024,
-                    response_mime_type="application/json",
+                    temperature=0.2,
                 ),
             )
             raw_text = response.text.strip()

@@ -76,8 +76,6 @@ Return ONLY valid JSON:
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     temperature=0.7,
-                    max_output_tokens=2048,
-                    response_mime_type="application/json",
                 ),
             )
             raw = response.text.strip()

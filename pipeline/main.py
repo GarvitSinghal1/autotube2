@@ -157,6 +157,32 @@ def _execute_steps(logger: PipelineLogger) -> None:
         logger.mark_step("metadata", "fail")
         raise RuntimeError(f"Metadata generation failed: {e}") from e
 
+    # ── Step 8.5: Save Output Locally ────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("STEP 8.5: Save Output Locally")
+    print("=" * 60)
+    try:
+        import json
+        output_dir = PROJECT_ROOT / "output"
+        output_dir.mkdir(exist_ok=True)
+        
+        # Copy videos
+        saved_long = output_dir / "long_form.mp4"
+        saved_short = output_dir / "short.mp4"
+        shutil.copy2(long_path, saved_long)
+        shutil.copy2(short_path, saved_short)
+        
+        # Save metadata
+        metadata_file = output_dir / "metadata.json"
+        with open(metadata_file, "w", encoding="utf-8") as f:
+            json.dump(video_metadata, f, indent=2)
+            
+        print(f"[main] Saved long-form video to: {saved_long}")
+        print(f"[main] Saved short video to: {saved_short}")
+        print(f"[main] Saved metadata to: {metadata_file}")
+    except Exception as e:
+        print(f"[main] Warning: Failed to save outputs locally: {e}")
+
     # ── Step 9: Upload to YouTube ────────────────────────────────────────
     print("\n" + "=" * 60)
     print("STEP 9: Upload to YouTube")

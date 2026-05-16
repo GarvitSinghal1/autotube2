@@ -82,5 +82,119 @@
       "uploader": "pending"
     },
     "error": "RuntimeError: Topic discovery failed: Gemini returned invalid JSON after 3 attempts.\nRaw: {\n  \"dataset_name\": \"Smallpox cases by country 1920-1977\",\nError: Expecting property name enclosed in double quotes: line 2 column 57 (char 58)"
+  },
+  {
+    "timestamp": "2026-05-16T13:14:55.688886+00:00",
+    "topic": null,
+    "dataset_url": null,
+    "chart_type": null,
+    "extreme_segment": null,
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "fail",
+      "fetcher": "pending",
+      "cleaner": "pending",
+      "analyzer": "pending",
+      "chart_selector": "pending",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Topic discovery failed: Gemini returned invalid JSON after 3 attempts.\nRaw: {\n  \"dataset_name\": \"Democracy - OWID based on Episodes of Regime Transformation (v13)\",\n  \"topic\":\nError: Expecting value: line 3 column 11 (char 99)"
+  },
+  {
+    "timestamp": "2026-05-16T13:16:34.897407+00:00",
+    "topic": "What the World Eats: A Century of Changing Diets",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Diet%20compositions%20by%20specific%20food%20commodities%20-%20FAO%20%282017%29/Diet%20compositions%20by%20specific%20food%20commodities%20-%20FAO%20%282017%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1993,
+      "end_year": 2013
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "fail",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Long-form rendering failed: FFmpeg failed:\nffmpeg version 8.0.1 Copyright (c) 2000-2025 the FFmpeg developers\n  built with Apple clang version 17.0.0 (clang-1700.4.4.1)\n  configuration: --prefix=/opt/homebrew/Cellar/ffmpeg/8.0.1 --enable-shared --enable-pthreads --enable-version3 --cc=clang --host-cflags= --host-ldflags= --enable-ffplay --enable-gnutls --enable-gpl --enable-libaom --enable-libaribb24 --enable-libbluray --enable-libdav1d --enable-libharfbuzz --enable-libjxl --enable-libmp3lame --enable-libopus --enable-librav1e --enable-librist --enable-librubberband --enable-libsnappy --enable-libsrt --enable-libssh --enable-libsvtav1 --enable-libtesseract --enable-libtheora --enable-libvidstab --enable-libvmaf --enable-libvorbis --enable-libvpx --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxml2 --enable-libxvid --enable-lzma --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libass --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenjpeg --enable-libspeex --enable-libsoxr --enable-libzmq --enable-libzimg --disable-libjack --disable-indev=jack --enable-videotoolbox --enable-audiotoolbox --enable-neon\n  libavutil      60.  8.100 / 60.  8.100\n  libavcodec     62. 11.100 / 62. 11.100\n  libavformat    62.  3.100 / 62.  3.100\n  libavdevice    62.  1.100 / 62.  1.100\n  libavfilter    11.  4.100 / 11.  4.100\n  libswscale      9.  1.100 /  9.  1.100\n  libswresample   6.  1.100 /  6.  1.100\nInput #0, image2, from '/tmp/dataviz/frames_long/frame_%05d.png':\n  Duration: 00:06:01.88, start: 0.000000, bitrate: N/A\n  Stream #0:0: Video: png, rgba(pc, gbr/unknown/unknown), 1754x931 [SAR 3937:3937 DAR 1754:931], 25 fps, 25 tbr, 25 tbn\nStream mapping:\n  Stream #0:0 -> #0:0 (png (native) -> h264 (libx264))\nPress [q] to stop, [?] for help\n[libx264 @ 0x154e303d0] height not divisible by 2 (1754x931)\n[vost#0:0/libx264 @ 0x154e2fce0] [enc:libx264 @ 0x154e30360] Error while opening encoder - maybe incorrect parameters such as bit_rate, rate, width or height.\n[vf#0:0 @ 0x155011e00] Error sending frames to consumers: Generic error in an external library\n[vf#0:0 @ 0x155011e00] Task finished with error code: -542398533 (Generic error in an external library)\n[vf#0:0 @ 0x155011e00] Terminating thread with return code -542398533 (Generic error in an external library)\n[vost#0:0/libx264 @ 0x154e2fce0] [enc:libx264 @ 0x154e30360] Could not open encoder before EOF\n[vost#0:0/libx264 @ 0x154e2fce0] Task finished with error code: -22 (Invalid argument)\n[vost#0:0/libx264 @ 0x154e2fce0] Terminating thread with return code -22 (Invalid argument)\n[out#0/mp4 @ 0x154e2f300] Nothing was written into output file, because at least one of its streams received no packets.\nframe=    0 fps=0.0 q=0.0 Lsize=       0KiB time=N/A bitrate=N/A speed=N/A elapsed=0:00:00.01    \nConversion failed!\n"
+  },
+  {
+    "timestamp": "2026-05-16T13:28:14.473293+00:00",
+    "topic": "The Rise and Fall of Whaling: A Century of Whale Catch",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Whale%20catch%20by%20decade%20%28Rocha%20et%20al.%20%26%20IWC%29/Whale%20catch%20by%20decade%20%28Rocha%20et%20al.%20%26%20IWC%29.csv",
+    "chart_type": null,
+    "extreme_segment": null,
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "fail",
+      "analyzer": "pending",
+      "chart_selector": "pending",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Data cleaning failed: Neither `start` nor `end` can be NaT"
+  },
+  {
+    "timestamp": "2026-05-16T13:30:55.849624+00:00",
+    "topic": "The Vanishing Girls: Asia's Skewed Sex Ratios by Birth Order",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Sex%20ratio%20at%20birth%20by%20birth%20order%20in%20S.Korea%20%26%20China%20%28Jiang%20et%20al.%202017%20%26%20NSO%20Korea%29/Sex%20ratio%20at%20birth%20by%20birth%20order%20in%20S.Korea%20%26%20China%20%28Jiang%20et%20al.%202017%20%26%20NSO%20Korea%29.csv",
+    "chart_type": "line_chart_race",
+    "extreme_segment": {
+      "start_year": 1971,
+      "end_year": 1981
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-16T13:31:27.178585+00:00",
+    "topic": "Centuries of Change: The Global Race for Gender Equality",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Historical%20gender%20equality%20index%20-%20How%20Was%20Life%21%20%282014%29/Historical%20gender%20equality%20index%20-%20How%20Was%20Life%21%20%282014%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1980,
+      "end_year": 1991
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
   }
 ]

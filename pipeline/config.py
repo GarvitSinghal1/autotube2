@@ -23,6 +23,8 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 RUN_LOG_PATH = LOGS_DIR / "run_log.json"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts"
+MUSIC_DIR = ASSETS_DIR / "music"
+DEFAULT_VOLUME = 0.15
 
 # ── Video specs ──────────────────────────────────────────────────────────────
 LONG_FORM_WIDTH = 1920

@@ -21,6 +21,7 @@ from pipeline.config import (
     SHORT_FRAMES_PER_STEP, SHORT_MIN_DURATION, SHORT_MAX_DURATION,
     BG_COLOR, TEXT_COLOR, SUBTITLE_COLOR, ACCENT_COLORS,
     FRAMES_SHORT_DIR, SHORT_FINAL, TOP_N_ENTITIES, TMP_DIR,
+    MUSIC_DIR, DEFAULT_VOLUME,
 )
 from pipeline.modules.renderer_long import assign_entity_colors, _ease_in_out, _format_value
 
@@ -153,44 +154,65 @@ def _render_bar_race_short(
             next_data = current_data
             next_ts = current_ts
 
-        current_top = current_data.nlargest(TOP_N_ENTITIES, "value")
-        next_top = next_data.nlargest(TOP_N_ENTITIES, "value")
-        all_shown = set(current_top["entity"]).union(set(next_top["entity"]))
+        current_data_sorted = current_data.sort_values("value", ascending=True).reset_index(drop=True)
+        next_data_sorted = next_data.sort_values("value", ascending=True).reset_index(drop=True)
+        
+        current_top = current_data_sorted.tail(TOP_N_ENTITIES)
+        next_top = next_data_sorted.tail(TOP_N_ENTITIES)
+        
+        current_ranks = {row.entity: i for i, row in enumerate(current_top.itertuples())}
+        next_ranks = {row.entity: i for i, row in enumerate(next_top.itertuples())}
+        
+        all_shown = set(current_ranks.keys()).union(set(next_ranks.keys()))
+
+        max_val_current = current_top["value"].max() if not current_top.empty else 1
+        max_val_next = next_top["value"].max() if not next_top.empty else 1
 
         for interp_idx in range(frames_per_step):
             t = _ease_in_out(interp_idx / max(frames_per_step - 1, 1))
+            interp_max_val = max_val_current + (max_val_next - max_val_current) * t
 
-            interp_values = {}
+            entities_to_draw = []
+            values_to_draw = []
+            y_positions = []
+            bar_colors = []
+
             for entity in all_shown:
                 cv = current_data[current_data["entity"] == entity]["value"]
                 nv = next_data[next_data["entity"] == entity]["value"]
                 cv = cv.iloc[0] if len(cv) > 0 else 0
                 nv = nv.iloc[0] if len(nv) > 0 else 0
-                interp_values[entity] = cv + (nv - cv) * t
-
-            sorted_entities = sorted(interp_values.items(), key=lambda x: x[1])
-            sorted_entities = sorted_entities[-TOP_N_ENTITIES:]
-            entities = [e for e, _ in sorted_entities]
-            values = [v for _, v in sorted_entities]
-            bar_colors = [colors.get(e, ACCENT_COLORS[0]) for e in entities]
+                val = cv + (nv - cv) * t
+                
+                r0 = current_ranks.get(entity, -1)
+                r1 = next_ranks.get(entity, -1)
+                y_pos = r0 + (r1 - r0) * t
+                
+                if y_pos > -1.5:
+                    entities_to_draw.append(entity)
+                    values_to_draw.append(val)
+                    y_positions.append(y_pos)
+                    bar_colors.append(colors.get(entity, ACCENT_COLORS[0]))
 
             fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
             fig.patch.set_facecolor(BG_COLOR)
             ax.set_facecolor(BG_COLOR)
 
-            bars = ax.barh(range(len(entities)), values, color=bar_colors,
+            bars = ax.barh(y_positions, values_to_draw, color=bar_colors,
                           height=0.7, edgecolor="none")
 
-            ax.set_yticks(range(len(entities)))
-            ax.set_yticklabels(entities, fontsize=16, color=TEXT_COLOR,
+            ax.set_yticks(y_positions)
+            ax.set_yticklabels(entities_to_draw, fontsize=16, color=TEXT_COLOR,
                               fontweight="bold", fontfamily="sans-serif")
 
-            max_val = max(values) if values else 1
-            for i, (val, bar) in enumerate(zip(values, bars)):
-                ax.text(val + max_val * 0.01, i, _format_value(val),
+            ax.set_ylim(-0.5, TOP_N_ENTITIES - 0.5)
+            if interp_max_val > 0:
+                ax.set_xlim(0, interp_max_val * 1.1)
+
+            for i, (val, bar, y_pos) in enumerate(zip(values_to_draw, bars, y_positions)):
+                ax.text(val + interp_max_val * 0.01, y_pos, _format_value(val),
                        fontsize=14, color=TEXT_COLOR, va="center")
 
-            # Large year display
             ax.text(0.5, 0.08, str(current_ts.year), transform=ax.transAxes,
                    fontsize=72, color=SUBTITLE_COLOR, ha="center", va="bottom",
                    fontweight="bold", alpha=0.3)
@@ -271,16 +293,42 @@ def _render_line_short(
 def _encode_short(frames_dir: Path, output_path: Path) -> None:
     """Encode Short frames to MP4 via FFmpeg."""
     print("[renderer_short] Encoding Short with FFmpeg...")
-    cmd = [
-        "ffmpeg", "-y",
-        "-r", str(FPS),
-        "-i", str(frames_dir / "frame_%05d.png"),
-        "-c:v", "libx264",
-        "-pix_fmt", "yuv420p",
-        "-crf", "18",
-        "-preset", "slow",
-        str(output_path),
-    ]
+    import random
+    music_files = list(MUSIC_DIR.glob("*.mp3")) + list(MUSIC_DIR.glob("*.wav"))
+    
+    if music_files:
+        bg_music = random.choice(music_files)
+        print(f"[renderer_short] Adding background music: {bg_music.name}")
+        cmd = [
+            "ffmpeg", "-y",
+            "-r", str(FPS),
+            "-i", str(frames_dir / "frame_%05d.png"),
+            "-stream_loop", "-1",
+            "-i", str(bg_music),
+            "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+            "-filter_complex", f"[1:a]volume={DEFAULT_VOLUME}[a]",
+            "-map", "0:v", "-map", "[a]",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac", "-b:a", "192k",
+            "-shortest",
+            "-crf", "18",
+            "-preset", "slow",
+            str(output_path),
+        ]
+    else:
+        cmd = [
+            "ffmpeg", "-y",
+            "-r", str(FPS),
+            "-i", str(frames_dir / "frame_%05d.png"),
+            "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-crf", "18",
+            "-preset", "slow",
+            str(output_path),
+        ]
+
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     if result.returncode != 0:
         raise RuntimeError(f"FFmpeg failed:\n{result.stderr}")

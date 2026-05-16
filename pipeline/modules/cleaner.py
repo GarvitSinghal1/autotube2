@@ -79,6 +79,18 @@ def clean_dataframe(
         entity_col = "entity"
         value_col = "value"
 
+    # --- Step 3.5: Handle wide-format data (entities as column headers) ---
+    if entity_col and date_col and date_col != "__WIDE_FORMAT__":
+        if df[entity_col].nunique() <= 1:
+            value_cols = [c for c in df.columns if c not in (date_col, entity_col) and str(c).lower() not in ("code", "continent", "index", "id")]
+            if len(value_cols) > 1:
+                print(f"[cleaner] Detected entities-as-columns wide format. Melting {len(value_cols)} columns.")
+                if entity_col in df.columns:
+                    df = df.drop(columns=[entity_col])
+                df = df.melt(id_vars=[date_col], value_vars=value_cols, var_name="entity", value_name="value")
+                entity_col = "entity"
+                value_col = "value"
+
     # --- Step 4: Build the standardized DataFrame ---
     df_clean = pd.DataFrame()
 
@@ -229,7 +241,7 @@ Return ONLY a JSON object:
                 model=GEMINI_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
+                    temperature=0.2,
                 ),
             )
             raw = response.text.strip()
