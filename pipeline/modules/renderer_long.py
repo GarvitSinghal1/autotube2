@@ -1,487 +1,277 @@
 """
 renderer_long.py — Renders the full long-form animated data visualization video.
-
-Uses matplotlib to generate individual frames, then FFmpeg to encode.
-Resolution: 1920x1080 (16:9 landscape). Duration: 5–10 minutes at 30fps.
+Uses a fixed slot system for perfectly smooth transitions and no bouncing axes.
 """
 
 import subprocess
+import random
 from pathlib import Path
 from typing import Optional
-
 import matplotlib
-matplotlib.use("Agg")
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import numpy as np
 import pandas as pd
 
 from pipeline.config import (
-    LONG_FORM_WIDTH, LONG_FORM_HEIGHT, FPS,
-    LONG_FRAMES_PER_STEP, LONG_FORM_MIN_DURATION, LONG_FORM_MAX_DURATION,
+    FPS, LONG_FRAMES_PER_STEP, LONG_FORM_MIN_DURATION, LONG_FORM_MAX_DURATION,
     BG_COLOR, TEXT_COLOR, SUBTITLE_COLOR, ACCENT_COLORS,
     FRAMES_LONG_DIR, LONG_FORM_FINAL, TOP_N_ENTITIES, TMP_DIR,
-    MUSIC_DIR, DEFAULT_VOLUME,
+    MUSIC_DIR, DEFAULT_VOLUME, PROJECT_ROOT
 )
 
+# Fixed slot configuration
+SLOTS = {i: float(9 - i) for i in range(10)}
 
 def assign_entity_colors(entities: list[str]) -> dict[str, str]:
-    """Assign a consistent color to each entity. Used across both renderers.
+    """Assign consistent colors to entities."""
+    return {entity: ACCENT_COLORS[i % len(ACCENT_COLORS)] for i, entity in enumerate(sorted(entities))}
 
-    Args:
-        entities: List of unique entity names.
+def format_value(value: float) -> str:
+    """Format large numbers with K/M/B suffixes."""
+    if value >= 1_000_000_000:
+        return f"{value / 1_000_000_000:.1f}B"
+    elif value >= 1_000_000:
+        return f"{value / 1_000_000:.1f}M"
+    elif value >= 1_000:
+        return f"{value / 1_000:.1f}K"
+    else:
+        return f"{value:.0f}"
 
-    Returns:
-        Dict mapping entity name to hex color string.
-    """
-    colors = {}
-    for i, entity in enumerate(entities):
-        colors[entity] = ACCENT_COLORS[i % len(ACCENT_COLORS)]
-    return colors
+def draw_hook_frame(fig, hook_text, alpha_text, title, title_alpha, frames_dir, frame_number):
+    """Draw Phase 1 & 2: Intro frames with fading hook and title."""
+    fig.clf()
+    fig.patch.set_facecolor('#000000')
+    
+    # Hook text box
+    if alpha_text > 0:
+        # Calculate y position: moves from 0.5 to 0.95 in Phase 2
+        # Phase 2 starts when title_alpha > 0
+        hook_y = 0.5 + (0.45 * title_alpha) if title_alpha > 0 else 0.5
+        
+        fig.text(0.5, hook_y, hook_text,
+                 ha='center', va='center',
+                 color=(1, 1, 1, alpha_text),
+                 fontsize=28, fontweight='bold',
+                 wrap=True,
+                 transform=fig.transFigure,
+                 bbox=dict(boxstyle='round,pad=0.8',
+                          facecolor='#111111',
+                          edgecolor=(1, 1, 1, alpha_text * 0.4),
+                          linewidth=1))
+    
+    # Title fades in at the top
+    if title_alpha > 0:
+        fig.text(0.02, 0.97, title,
+                 ha='left', va='top',
+                 color=(1, 1, 1, title_alpha), 
+                 fontsize=13, fontweight='bold',
+                 transform=fig.transFigure)
 
+    plt.savefig(f'{frames_dir}/frame_{frame_number:05d}.png',
+                dpi=100, facecolor='#000000', pad_inches=0)
 
-def render_long_form(
-    df: pd.DataFrame,
-    chart_type: str,
-    topic_info: dict,
-    entity_colors: Optional[dict] = None,
-) -> tuple[Path, dict[str, str]]:
-    """Render the full long-form video.
+def draw_frame(ax, fig, entities_data, title, source, date_label, frames_dir, frame_number):
+    """Draw Phase 3: The actual animated chart frame."""
+    ax.cla()
+    ax.set_facecolor('#000000')
+    ax.set_xlim(0, 1)
+    ax.set_ylim(-0.6, 9.6)
+    ax.set_yticks([])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_visible(False)
+    ax.spines['bottom'].set_color('#444444')
+    ax.tick_params(axis='x', colors='white', labelsize=8)
 
-    Args:
-        df: DataFrame with [date, entity, value] — monthly or yearly.
-        chart_type: One of the supported chart types.
-        topic_info: Dict with topic, description, source, etc.
-        entity_colors: Pre-assigned entity colors. If None, assigns them.
+    if not entities_data:
+        max_value = 1
+    else:
+        max_value = max(d['value'] for d in entities_data) * 1.1
+    
+    for d in entities_data:
+        entity = d['entity']
+        norm_value = d['value'] / max_value if max_value > 0 else 0
+        y = d['y_pos']
+        color = d['color']
+        
+        # Draw bar
+        ax.barh(y, norm_value, height=0.65, color=color, alpha=0.9, left=0)
+        
+        # Label inside left margin
+        ax.text(-0.01, y, entity, ha='right', va='center',
+                color='white', fontsize=10, fontweight='bold',
+                transform=ax.transData)
+        
+        # Value label at end of bar
+        ax.text(norm_value + 0.01, y, format_value(d['value']),
+                ha='left', va='center', color='white', fontsize=9)
+    
+    # Update x-axis ticks
+    ticks = [0, 0.25, 0.5, 0.75, 1.0]
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([format_value(t * max_value) for t in ticks], color='white', fontsize=8)
+    
+    # Ghost year counter
+    fig.text(0.95, 0.08, date_label,
+             ha='right', va='bottom',
+             color='white', alpha=0.15,
+             fontsize=52, fontweight='bold',
+             transform=fig.transFigure)
+    
+    # Static Title
+    fig.text(0.02, 0.97, title,
+             ha='left', va='top',
+             color='white', fontsize=13, fontweight='bold',
+             transform=fig.transFigure)
+    
+    # Static Source
+    fig.text(0.02, 0.93, f'Source: {source}',
+             ha='left', va='top',
+             color='#888888', fontsize=9, style='italic',
+             transform=fig.transFigure)
+    
+    plt.savefig(
+        f'{frames_dir}/frame_{frame_number:05d}.png',
+        dpi=100,
+        bbox_inches=None,
+        facecolor='#000000',
+        pad_inches=0
+    )
 
-    Returns:
-        Tuple of (output_path, entity_colors_used).
-
-    Raises:
-        RuntimeError: If rendering or FFmpeg encoding fails.
-    """
-    print(f"[renderer_long] Chart type: {chart_type}")
-    print(f"[renderer_long] Data shape: {df.shape}")
-
-    # Prepare output directories
+def render_long_form(df, chart_type, topic_info, entity_colors=None):
+    """Main rendering entry point for long-form video."""
+    print(f"[renderer_long] Starting render...")
     FRAMES_LONG_DIR.mkdir(parents=True, exist_ok=True)
-    TMP_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Get all unique entities and assign colors
+    
     all_entities = sorted(df["entity"].unique())
     if entity_colors is None:
         entity_colors = assign_entity_colors(all_entities)
-    else:
-        # Ensure all entities have colors
-        for e in all_entities:
-            if e not in entity_colors:
-                entity_colors[e] = ACCENT_COLORS[len(entity_colors) % len(ACCENT_COLORS)]
-
-    # Get sorted unique time steps
+    
     time_steps = sorted(df["date"].unique())
     n_steps = len(time_steps)
-    print(f"[renderer_long] Time steps: {n_steps}")
+    
+    # Setup Figure
+    fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
+    ax = fig.add_axes([0.15, 0.10, 0.80, 0.78])
+    fig.patch.set_facecolor('#000000')
+    
+    hook_text = topic_info.get("hook", "Discover the data behind the story.")
+    title = topic_info.get("topic", "Data Visualization")
+    source = topic_info.get("source", "Public Data")
+    
+    frame_number = 0
+    
+    # Phase 1: Static Hook (1.5s = 45 frames)
+    for f in range(45):
+        draw_hook_frame(fig, hook_text, 1.0, title, 0.0, FRAMES_LONG_DIR, frame_number)
+        frame_number += 1
+        
+    # Phase 2: Hook Slides/Fades, Title Fades In (1.5s = 45 frames)
+    for f in range(45):
+        t = f / 44
+        eased_t = t * t * (3 - 2 * t)
+        draw_hook_frame(fig, hook_text, 1.0 - eased_t, title, eased_t, FRAMES_LONG_DIR, frame_number)
+        frame_number += 1
 
-    # Calculate frames per step to hit target duration
-    total_frames_min = LONG_FORM_MIN_DURATION * FPS
-    total_frames_max = LONG_FORM_MAX_DURATION * FPS
-    frames_per_step = max(LONG_FRAMES_PER_STEP, total_frames_min // max(n_steps, 1))
-    frames_per_step = min(frames_per_step, total_frames_max // max(n_steps, 1))
-    frames_per_step = max(frames_per_step, 10)
+    # Phase 3: Chart Animation
+    prev_ranks = {} # entity -> slot_index (0-9)
+    
+    for step_idx in range(len(time_steps) - 1):
+        curr_ts = time_steps[step_idx]
+        next_ts = time_steps[step_idx+1]
+        
+        curr_df = df[df["date"] == curr_ts]
+        next_df = df[df["date"] == next_ts]
+        
+        # Calculate actual rankings at start and end of this step
+        curr_sorted = curr_df.sort_values("value", ascending=False).head(10)
+        next_sorted = next_df.sort_values("value", ascending=False).head(10)
+        
+        curr_step_ranks = {row.entity: i for i, row in enumerate(curr_sorted.itertuples())}
+        next_step_ranks = {row.entity: i for i, row in enumerate(next_sorted.itertuples())}
+        
+        all_involved = set(curr_step_ranks.keys()).union(set(next_step_ranks.keys()))
+        
+        date_label = pd.Timestamp(curr_ts).strftime("%Y") if pd.Timestamp(next_ts).year != pd.Timestamp(curr_ts).year else pd.Timestamp(curr_ts).strftime("%b %Y")
 
-    # Add title card frames (3 seconds)
-    title_frames = FPS * 3
-    total_frames = title_frames + n_steps * frames_per_step
+        for f in range(LONG_FRAMES_PER_STEP):
+            alpha = f / LONG_FRAMES_PER_STEP
+            eased_alpha = alpha * alpha * (3 - 2 * alpha)
+            
+            entities_data = []
+            for entity in all_involved:
+                # Value interpolation
+                v0 = curr_df[curr_df["entity"] == entity]["value"].values
+                v1 = next_df[next_df["entity"] == entity]["value"].values
+                v0 = v0[0] if len(v0) > 0 else 0
+                v1 = v1[0] if len(v1) > 0 else 0
+                interp_val = v0 * (1 - eased_alpha) + v1 * eased_alpha
+                
+                # Y Position interpolation (Slot movement)
+                # Slot 0 is y=9, Slot 9 is y=0.
+                r0 = curr_step_ranks.get(entity, 11) # 11 = off screen below
+                r1 = next_step_ranks.get(entity, 11)
+                
+                y0 = SLOTS.get(r0, -2.0)
+                y1 = SLOTS.get(r1, -2.0)
+                interp_y = y0 * (1 - eased_alpha) + y1 * eased_alpha
+                
+                if interp_y > -1.5:
+                    entities_data.append({
+                        "entity": entity,
+                        "value": interp_val,
+                        "y_pos": interp_y,
+                        "color": entity_colors.get(entity, ACCENT_COLORS[0])
+                    })
+            
+            draw_frame(ax, fig, entities_data, title, source, date_label, FRAMES_LONG_DIR, frame_number)
+            frame_number += 1
+            
+        if step_idx % 5 == 0:
+            print(f"[renderer_long] Progress: {step_idx}/{len(time_steps)}")
 
-    print(f"[renderer_long] Frames per step: {frames_per_step}")
-    print(f"[renderer_long] Total frames: {total_frames}")
-    print(f"[renderer_long] Estimated duration: {total_frames / FPS:.0f}s")
-
-    # Render title card
-    frame_num = 0
-    frame_num = _render_title_card(
-        topic_info, time_steps, frame_num, title_frames
-    )
-
-    # Render data frames
-    if chart_type == "bar_chart_race":
-        frame_num = _render_bar_chart_race(
-            df, time_steps, entity_colors, topic_info,
-            frames_per_step, frame_num, is_short=False,
-        )
-    elif chart_type == "line_chart_race":
-        frame_num = _render_line_chart_race(
-            df, time_steps, entity_colors, topic_info,
-            frames_per_step, frame_num, is_short=False,
-        )
-    elif chart_type == "area_chart":
-        frame_num = _render_area_chart(
-            df, time_steps, entity_colors, topic_info,
-            frames_per_step, frame_num, is_short=False,
-        )
-    else:
-        # Default to bar chart race for unsupported types
-        print(f"[renderer_long] Falling back to bar_chart_race for '{chart_type}'")
-        frame_num = _render_bar_chart_race(
-            df, time_steps, entity_colors, topic_info,
-            frames_per_step, frame_num, is_short=False,
-        )
-
-    # Encode with FFmpeg
+    plt.close(fig)
     _encode_video(FRAMES_LONG_DIR, LONG_FORM_FINAL)
-
-    print(f"[renderer_long] Output: {LONG_FORM_FINAL}")
     return LONG_FORM_FINAL, entity_colors
 
-
-def _render_title_card(
-    topic_info: dict, time_steps: list, start_frame: int, n_frames: int
-) -> int:
-    """Render title card frames."""
-    fig, ax = plt.subplots(figsize=(19.20, 10.80), dpi=100)
-    fig.patch.set_facecolor(BG_COLOR)
-    ax.set_facecolor(BG_COLOR)
-    ax.axis("off")
-
-    title = topic_info.get("topic", "Data Visualization")
-    ts_start = pd.Timestamp(time_steps[0])
-    ts_end = pd.Timestamp(time_steps[-1])
-    subtitle = f"{ts_start.year} — {ts_end.year}"
-    source = f"Source: {topic_info.get('source', 'Public Data')}"
-
-    ax.text(0.5, 0.55, title, transform=ax.transAxes, fontsize=42,
-            color=TEXT_COLOR, ha="center", va="center", fontweight="bold",
-            fontfamily="sans-serif", wrap=True)
-    ax.text(0.5, 0.40, subtitle, transform=ax.transAxes, fontsize=28,
-            color=ACCENT_COLORS[0], ha="center", va="center", fontfamily="sans-serif")
-    ax.text(0.5, 0.15, source, transform=ax.transAxes, fontsize=16,
-            color=SUBTITLE_COLOR, ha="center", va="center", fontfamily="sans-serif")
-
-    for i in range(n_frames):
-        frame_path = FRAMES_LONG_DIR / f"frame_{start_frame + i:05d}.png"
-        fig.savefig(frame_path, facecolor=BG_COLOR, bbox_inches="tight",
-                    pad_inches=0.5, dpi=100)
-    plt.close(fig)
-
-    return start_frame + n_frames
-
-
-def _render_bar_chart_race(
-    df: pd.DataFrame, time_steps: list, colors: dict, topic_info: dict,
-    frames_per_step: int, start_frame: int, is_short: bool = False,
-) -> int:
-    """Render horizontal bar chart race frames with interpolation."""
-    frame_num = start_frame
-    dpi = 100
-    if is_short:
-        figsize = (10.80, 19.20)
-        title_size, label_size, value_size, date_size = 28, 16, 14, 36
-    else:
-        figsize = (19.20, 10.80)
-        title_size, label_size, value_size, date_size = 24, 14, 12, 32
-
-    topic_title = topic_info.get("topic", "")
-
-    for step_idx in range(len(time_steps)):
-        current_ts = pd.Timestamp(time_steps[step_idx])
-        current_data = df[df["date"] == time_steps[step_idx]]
-
-        if step_idx < len(time_steps) - 1:
-            next_ts = pd.Timestamp(time_steps[step_idx + 1])
-            next_data = df[df["date"] == time_steps[step_idx + 1]]
-        else:
-            next_data = current_data
-            next_ts = current_ts
-
-        current_data_sorted = current_data.sort_values("value", ascending=True).reset_index(drop=True)
-        next_data_sorted = next_data.sort_values("value", ascending=True).reset_index(drop=True)
-        
-        current_top = current_data_sorted.tail(TOP_N_ENTITIES)
-        next_top = next_data_sorted.tail(TOP_N_ENTITIES)
-        
-        current_ranks = {row.entity: i for i, row in enumerate(current_top.itertuples())}
-        next_ranks = {row.entity: i for i, row in enumerate(next_top.itertuples())}
-        
-        all_shown = set(current_ranks.keys()).union(set(next_ranks.keys()))
-
-        max_val_current = current_top["value"].max() if not current_top.empty else 1
-        max_val_next = next_top["value"].max() if not next_top.empty else 1
-
-        for interp_idx in range(frames_per_step):
-            t = _ease_in_out(interp_idx / max(frames_per_step - 1, 1))
-            interp_max_val = max_val_current + (max_val_next - max_val_current) * t
-
-            entities_to_draw = []
-            values_to_draw = []
-            y_positions = []
-            bar_colors = []
-
-            for entity in all_shown:
-                cv = current_data[current_data["entity"] == entity]["value"]
-                nv = next_data[next_data["entity"] == entity]["value"]
-                cv = cv.iloc[0] if len(cv) > 0 else 0
-                nv = nv.iloc[0] if len(nv) > 0 else 0
-                val = cv + (nv - cv) * t
-                
-                r0 = current_ranks.get(entity, -1)
-                r1 = next_ranks.get(entity, -1)
-                y_pos = r0 + (r1 - r0) * t
-                
-                if y_pos > -1.5:
-                    entities_to_draw.append(entity)
-                    values_to_draw.append(val)
-                    y_positions.append(y_pos)
-                    bar_colors.append(colors.get(entity, ACCENT_COLORS[0]))
-
-            fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-            fig.patch.set_facecolor(BG_COLOR)
-            ax.set_facecolor(BG_COLOR)
-
-            bars = ax.barh(y_positions, values_to_draw, color=bar_colors,
-                          height=0.7, edgecolor="none")
-
-            ax.set_yticks(y_positions)
-            ax.set_yticklabels(entities_to_draw, fontsize=label_size, color=TEXT_COLOR,
-                              fontweight="bold", fontfamily="sans-serif")
-            
-            ax.set_ylim(-0.5, TOP_N_ENTITIES - 0.5)
-            if interp_max_val > 0:
-                ax.set_xlim(0, interp_max_val * 1.1)
-
-            for i, (val, bar, y_pos) in enumerate(zip(values_to_draw, bars, y_positions)):
-                ax.text(val + interp_max_val * 0.01, y_pos, _format_value(val),
-                       fontsize=value_size, color=TEXT_COLOR, va="center",
-                       fontfamily="sans-serif")
-
-            interp_date = current_ts + (next_ts - current_ts) * t
-            if is_short:
-                date_label = str(interp_date.year)
-            else:
-                date_label = interp_date.strftime("%b %Y") if (next_ts - current_ts).days < 400 else str(interp_date.year)
-
-            ax.text(0.95, 0.05, date_label, transform=ax.transAxes,
-                   fontsize=date_size, color=SUBTITLE_COLOR, ha="right",
-                   va="bottom", fontweight="bold", fontfamily="sans-serif",
-                   alpha=0.6)
-
-            ax.set_title(topic_title, fontsize=title_size, color=TEXT_COLOR,
-                        fontweight="bold", fontfamily="sans-serif", pad=20)
-
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.spines["bottom"].set_color(SUBTITLE_COLOR)
-            ax.spines["left"].set_visible(False)
-            ax.tick_params(axis="x", colors=SUBTITLE_COLOR, labelsize=10)
-            ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: _format_value(x)))
-
-            plt.tight_layout(pad=1.5)
-
-            frame_path = FRAMES_LONG_DIR / f"frame_{frame_num:05d}.png"
-            fig.savefig(frame_path, facecolor=BG_COLOR, dpi=dpi)
-            plt.close(fig)
-            frame_num += 1
-
-        if step_idx % 10 == 0:
-            print(f"[renderer_long] Progress: step {step_idx+1}/{len(time_steps)}")
-
-    return frame_num
-
-
-def _render_line_chart_race(
-    df: pd.DataFrame, time_steps: list, colors: dict, topic_info: dict,
-    frames_per_step: int, start_frame: int, is_short: bool = False,
-) -> int:
-    """Render animated line chart frames."""
-    frame_num = start_frame
-    dpi = 100
-    if is_short:
-        figsize = (10.80, 19.20)
-    else:
-        figsize = (19.20, 10.80)
-
-    entities = df["entity"].unique()
-    topic_title = topic_info.get("topic", "")
-
-    # Build full time series per entity
-    entity_series = {}
-    for entity in entities:
-        edata = df[df["entity"] == entity].sort_values("date")
-        entity_series[entity] = edata
-
-    for step_idx in range(len(time_steps)):
-        current_ts = pd.Timestamp(time_steps[step_idx])
-
-        for interp_idx in range(frames_per_step):
-            if step_idx < len(time_steps) - 1:
-                next_ts = pd.Timestamp(time_steps[step_idx + 1])
-                t = interp_idx / max(frames_per_step - 1, 1)
-                interp_date = current_ts + (next_ts - current_ts) * t
-            else:
-                interp_date = current_ts
-
-            fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-            fig.patch.set_facecolor(BG_COLOR)
-            ax.set_facecolor(BG_COLOR)
-
-            for entity in entities:
-                edata = entity_series[entity]
-                mask = edata["date"] <= time_steps[step_idx]
-                visible = edata[mask]
-                if visible.empty:
-                    continue
-                color = colors.get(entity, ACCENT_COLORS[0])
-                ax.plot(visible["date"], visible["value"],
-                       color=color, linewidth=2.5, label=entity)
-                # Dot at current position
-                ax.scatter([visible["date"].iloc[-1]], [visible["value"].iloc[-1]],
-                          color=color, s=60, zorder=5)
-
-            ax.set_title(topic_title, fontsize=22, color=TEXT_COLOR,
-                        fontweight="bold", fontfamily="sans-serif", pad=15)
-            ax.legend(loc="upper left", fontsize=11, facecolor=BG_COLOR,
-                     edgecolor=SUBTITLE_COLOR, labelcolor=TEXT_COLOR)
-
-            # Date label
-            date_label = interp_date.strftime("%Y") if is_short else interp_date.strftime("%b %Y")
-            ax.text(0.95, 0.05, date_label, transform=ax.transAxes,
-                   fontsize=28, color=SUBTITLE_COLOR, ha="right", va="bottom",
-                   fontweight="bold", alpha=0.6)
-
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.spines["bottom"].set_color(SUBTITLE_COLOR)
-            ax.spines["left"].set_color(SUBTITLE_COLOR)
-            ax.tick_params(colors=SUBTITLE_COLOR)
-            ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, p: _format_value(x)))
-
-            plt.tight_layout()
-            frame_path = FRAMES_LONG_DIR / f"frame_{frame_num:05d}.png"
-            fig.savefig(frame_path, facecolor=BG_COLOR, dpi=dpi)
-            plt.close(fig)
-            frame_num += 1
-
-        if step_idx % 10 == 0:
-            print(f"[renderer_long] Progress: step {step_idx+1}/{len(time_steps)}")
-
-    return frame_num
-
-
-def _render_area_chart(
-    df: pd.DataFrame, time_steps: list, colors: dict, topic_info: dict,
-    frames_per_step: int, start_frame: int, is_short: bool = False,
-) -> int:
-    """Render animated area chart frames."""
-    frame_num = start_frame
-    dpi = 100
-    figsize = (10.80, 19.20) if is_short else (19.20, 10.80)
-
-    entities = df["entity"].unique()
-    topic_title = topic_info.get("topic", "")
-
-    for step_idx in range(len(time_steps)):
-        for interp_idx in range(frames_per_step):
-            fig, ax = plt.subplots(figsize=figsize, dpi=dpi)
-            fig.patch.set_facecolor(BG_COLOR)
-            ax.set_facecolor(BG_COLOR)
-
-            for entity in entities:
-                edata = df[df["entity"] == entity].sort_values("date")
-                mask = edata["date"] <= time_steps[step_idx]
-                visible = edata[mask]
-                if visible.empty:
-                    continue
-                color = colors.get(entity, ACCENT_COLORS[0])
-                ax.fill_between(visible["date"], visible["value"],
-                               alpha=0.4, color=color)
-                ax.plot(visible["date"], visible["value"],
-                       color=color, linewidth=2, label=entity)
-
-            ax.set_title(topic_title, fontsize=22, color=TEXT_COLOR,
-                        fontweight="bold", fontfamily="sans-serif")
-            if len(entities) > 1:
-                ax.legend(loc="upper left", fontsize=10, facecolor=BG_COLOR,
-                         edgecolor=SUBTITLE_COLOR, labelcolor=TEXT_COLOR)
-
-            current_ts = pd.Timestamp(time_steps[step_idx])
-            ax.text(0.95, 0.05, str(current_ts.year), transform=ax.transAxes,
-                   fontsize=28, color=SUBTITLE_COLOR, ha="right", va="bottom",
-                   fontweight="bold", alpha=0.6)
-
-            ax.spines["top"].set_visible(False)
-            ax.spines["right"].set_visible(False)
-            ax.spines["bottom"].set_color(SUBTITLE_COLOR)
-            ax.spines["left"].set_color(SUBTITLE_COLOR)
-            ax.tick_params(colors=SUBTITLE_COLOR)
-
-            plt.tight_layout()
-            frame_path = FRAMES_LONG_DIR / f"frame_{frame_num:05d}.png"
-            fig.savefig(frame_path, facecolor=BG_COLOR, dpi=dpi)
-            plt.close(fig)
-            frame_num += 1
-
-    return frame_num
-
-
 def _encode_video(frames_dir: Path, output_path: Path) -> None:
-    """Encode frames into MP4 using FFmpeg."""
-    print(f"[renderer_long] Encoding video with FFmpeg...")
+    """Encode frames into MP4 using FFmpeg with music."""
+    print(f"[renderer_long] Encoding...")
     import random
     music_files = list(MUSIC_DIR.glob("*.mp3")) + list(MUSIC_DIR.glob("*.wav"))
     
     if music_files:
         bg_music = random.choice(music_files)
-        print(f"[renderer_long] Adding background music: {bg_music.name}")
         cmd = [
-            "ffmpeg", "-y",
-            "-r", str(FPS),
-            "-i", str(frames_dir / "frame_%05d.png"),
-            "-stream_loop", "-1",
-            "-i", str(bg_music),
-            "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-            "-filter_complex", f"[1:a]volume={DEFAULT_VOLUME}[a]",
-            "-map", "0:v", "-map", "[a]",
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac", "-b:a", "192k",
-            "-shortest",
-            "-crf", "18",
-            "-preset", "slow",
-            str(output_path),
+            'ffmpeg', '-y',
+            '-framerate', str(FPS),
+            '-i', f'{frames_dir}/frame_%05d.png',
+            '-stream_loop', '-1',
+            '-i', str(bg_music),
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-crf', '18',
+            '-preset', 'slow',
+            '-c:a', 'aac',
+            '-b:a', '192k',
+            '-filter:a', f'volume={DEFAULT_VOLUME}',
+            '-shortest',
+            '-ac', '2',
+            '-ar', '44100',
+            str(output_path)
         ]
     else:
         cmd = [
-            "ffmpeg", "-y",
-            "-r", str(FPS),
-            "-i", str(frames_dir / "frame_%05d.png"),
-            "-vf", "pad=ceil(iw/2)*2:ceil(ih/2)*2",
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-crf", "18",
-            "-preset", "slow",
-            str(output_path),
+            'ffmpeg', '-y',
+            '-framerate', str(FPS),
+            '-i', f'{frames_dir}/frame_%05d.png',
+            '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
+            '-crf', '18',
+            '-preset', 'slow',
+            str(output_path)
         ]
-    
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-    if result.returncode != 0:
-        raise RuntimeError(f"FFmpeg failed:\n{result.stderr}")
-    print(f"[renderer_long] Encoded: {output_path}")
-
-
-def _ease_in_out(t: float) -> float:
-    """Smooth easing function for interpolation."""
-    return t * t * (3 - 2 * t)
-
-
-def _format_value(val: float) -> str:
-    """Format large numbers with K/M/B suffixes."""
-    val = float(val)
-    if abs(val) >= 1e12:
-        return f"{val/1e12:.1f}T"
-    elif abs(val) >= 1e9:
-        return f"{val/1e9:.1f}B"
-    elif abs(val) >= 1e6:
-        return f"{val/1e6:.1f}M"
-    elif abs(val) >= 1e3:
-        return f"{val/1e3:.1f}K"
-    else:
-        return f"{val:.1f}"
+        
+    subprocess.run(cmd, capture_output=True, text=True, check=True)
+    print(f"[renderer_long] Done: {output_path}")

@@ -196,5 +196,53 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-16T13:49:20.336339+00:00",
+    "topic": "The World Connected: 500 Years of Globalization",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Long%20run%20time%20use%20in%20Norway%2C%20by%20sex%20-%20Norway%20Statistics/Long%20run%20time%20use%20in%20Norway%2C%20by%20sex%20-%20Norway%20Statistics.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1970,
+      "end_year": 1987
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-16T13:55:18.913872+00:00",
+    "topic": "The Shifting Map of Global Conflict: A History of Deaths",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Conflict%20deaths%20%E2%80%93%20UCDP%20Georeferenced%20Event%20Data%20%282019%29/Conflict%20deaths%20%E2%80%93%20UCDP%20Georeferenced%20Event%20Data%20%282019%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1995,
+      "end_year": 2014
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
   }
 ]

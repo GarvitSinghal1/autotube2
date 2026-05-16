@@ -110,39 +110,35 @@ def _execute_steps(logger: PipelineLogger) -> None:
         logger.mark_step("chart_selector", "fail")
         raise RuntimeError(f"Chart selection failed: {e}") from e
 
-    # ── Step 6: Render Long-Form Video ───────────────────────────────────
+    # ── Step 6: Render Short ─────────────────────────────────────────────
     print("\n" + "=" * 60)
-    print("STEP 6: Render Long-Form Video")
-    print("=" * 60)
-    try:
-        from pipeline.modules.renderer_long import render_long_form
-        # Use monthly data if available, fall back to yearly
-        render_df = df_monthly if not df_monthly.empty else df_yearly
-        long_path, entity_colors = render_long_form(
-            render_df, chart_type, topic_info
-        )
-        state["long_path"] = long_path
-        state["entity_colors"] = entity_colors
-        logger.mark_step("renderer_long", "pass")
-    except Exception as e:
-        logger.mark_step("renderer_long", "fail")
-        raise RuntimeError(f"Long-form rendering failed: {e}") from e
-
-    # ── Step 7: Render Short ─────────────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("STEP 7: Render Short")
+    print("STEP 6: Render Short")
     print("=" * 60)
     try:
         from pipeline.modules.renderer_short import render_short
-        short_path = render_short(
-            df_yearly, chart_type, topic_info,
-            extreme_segment, entity_colors,
+        short_path, entity_colors = render_short(
+            df_yearly, chart_type, topic_info, extreme_segment
         )
         state["short_path"] = short_path
         logger.mark_step("renderer_short", "pass")
     except Exception as e:
         logger.mark_step("renderer_short", "fail")
         raise RuntimeError(f"Short rendering failed: {e}") from e
+
+    # ── Step 7: Render Long-Form Video ───────────────────────────────────
+    print("\n" + "=" * 60)
+    print("STEP 7: Render Long-Form Video")
+    print("=" * 60)
+    try:
+        from pipeline.modules.renderer_long import render_long_form
+        long_path, _ = render_long_form(
+            df_monthly, chart_type, topic_info, entity_colors=entity_colors
+        )
+        state["long_path"] = long_path
+        logger.mark_step("renderer_long", "pass")
+    except Exception as e:
+        logger.mark_step("renderer_long", "fail")
+        raise RuntimeError(f"Long-form rendering failed: {e}") from e
 
     # ── Step 8: Generate Metadata ────────────────────────────────────────
     print("\n" + "=" * 60)
