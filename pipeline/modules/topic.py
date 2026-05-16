@@ -9,7 +9,8 @@ import re
 import random
 import urllib.parse
 import requests
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
@@ -67,11 +68,7 @@ def discover_topic() -> dict:
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(
-        GEMINI_MODEL,
-        system_instruction=SYSTEM_PROMPT,
-    )
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     # 1. Get real dataset options
     all_datasets = _get_owid_dataset_list()
@@ -85,29 +82,33 @@ def discover_topic() -> dict:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(
-                user_prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=user_prompt,
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
                     temperature=1.0,
                     max_output_tokens=1024,
+                    response_mime_type="application/json",
                 ),
             )
-            break
+            raw_text = response.text.strip()
+            if raw_text.startswith("```"):
+                raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+                raw_text = re.sub(r"\s*```$", "", raw_text)
+
+            result = json.loads(raw_text)
+            break  # Success!
+        except json.JSONDecodeError as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Gemini returned invalid JSON after {max_retries} attempts.\nRaw: {raw_text}\nError: {e}") from e
+            print(f"[topic] Invalid JSON: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(5)
         except Exception as e:
             if attempt == max_retries - 1:
                 raise RuntimeError(f"Gemini API call failed after {max_retries} attempts: {e}") from e
             print(f"[topic] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
             time.sleep(30)
-
-    raw_text = response.text.strip()
-    if raw_text.startswith("```"):
-        raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
-        raw_text = re.sub(r"\s*```$", "", raw_text)
-
-    try:
-        result = json.loads(raw_text)
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Gemini returned invalid JSON.\nRaw: {raw_text}\nError: {e}") from e
 
     chosen_name = result.get("dataset_name")
     if not chosen_name or chosen_name not in sample_names:

@@ -7,7 +7,8 @@ Uses Gemini to create compelling, SEO-optimized metadata.
 import json
 import re
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
@@ -29,8 +30,7 @@ def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(GEMINI_MODEL)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     prompt = f"""Generate YouTube video metadata for TWO videos about the same dataset.
 
@@ -71,29 +71,32 @@ Return ONLY valid JSON:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(
-                prompt,
-                generation_config=genai.types.GenerationConfig(
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
                     temperature=0.7,
                     max_output_tokens=2048,
+                    response_mime_type="application/json",
                 ),
             )
-            break
+            raw = response.text.strip()
+            if raw.startswith("```"):
+                raw = re.sub(r"^```(?:json)?\s*", "", raw)
+                raw = re.sub(r"\s*```$", "", raw)
+
+            result = json.loads(raw)
+            break  # Success!
+        except json.JSONDecodeError as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Invalid JSON from Gemini after {max_retries} attempts.\nRaw: {raw}\nError: {e}") from e
+            print(f"[metadata] Invalid JSON: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(5)
         except Exception as e:
             if attempt == max_retries - 1:
                 raise RuntimeError(f"Gemini metadata generation failed after {max_retries} attempts: {e}") from e
             print(f"[metadata] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
             time.sleep(30)
-
-    raw = response.text.strip()
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?\s*", "", raw)
-        raw = re.sub(r"\s*```$", "", raw)
-
-    try:
-        result = json.loads(raw)
-    except json.JSONDecodeError as e:
-        raise RuntimeError(f"Invalid JSON from Gemini:\n{raw}\nError: {e}") from e
 
     # Validate structure
     for key in ("long_form", "short"):

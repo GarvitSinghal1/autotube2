@@ -8,11 +8,7 @@ Cleans up /tmp/dataviz/ at the end of every run whether it succeeded or failed.
 import shutil
 import sys
 import traceback
-import warnings
 from pathlib import Path
-
-# Suppress deprecation warnings from google.generativeai
-warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Add project root to sys.path so 'pipeline' is importable when running python pipeline/main.py directly
 PROJECT_ROOT = Path(__file__).resolve().parent.parent

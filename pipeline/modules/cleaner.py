@@ -14,7 +14,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL, MIN_YEARS_REQUIRED
 
 # Column name patterns to auto-detect roles
@@ -194,8 +195,7 @@ def _gemini_detect_columns(
     """
     import json
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(GEMINI_MODEL)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     sample = df.head(5).to_string()
     columns = list(df.columns)
@@ -225,14 +225,25 @@ Return ONLY a JSON object:
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                ),
+            )
             raw = response.text.strip()
             if raw.startswith("```"):
                 raw = re.sub(r"^```(?:json)?\s*", "", raw)
                 raw = re.sub(r"\s*```$", "", raw)
 
             result = json.loads(raw)
-            return result["date_col"], result["entity_col"], result.get("value_col")
+            return result.get("date_col"), result.get("entity_col"), result.get("value_col")
+        except json.JSONDecodeError as e:
+            if attempt == max_retries - 1:
+                raise RuntimeError(f"Gemini column detection invalid JSON after {max_retries} attempts: {e}") from e
+            print(f"[cleaner] Invalid JSON: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(5)
         except Exception as e:
             if attempt == max_retries - 1:
                 raise RuntimeError(f"Gemini column detection failed after {max_retries} attempts: {e}") from e

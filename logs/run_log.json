@@ -40,5 +40,47 @@
       "uploader": "pending"
     },
     "error": "RuntimeError: Topic discovery failed: Gemini API call failed after 3 attempts: 429 You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.0-flash\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.0-flash\nPlease retry in 6.705086488s. [links {\n  description: \"Learn more about Gemini API quotas\"\n  url: \"https://ai.google.dev/gemini-api/docs/rate-limits\"\n}\n, violations {\n  quota_metric: \"generativelanguage.googleapis.com/generate_content_free_tier_requests\"\n  quota_id: \"GenerateRequestsPerDayPerProjectPerModel-FreeTier\"\n  quota_dimensions {\n    key: \"model\"\n    value: \"gemini-2.0-flash\"\n  }\n  quota_dimensions {\n    key: \"location\"\n    value: \"global\"\n  }\n}\nviolations {\n  quota_metric: \"generativelanguage.googleapis.com/generate_content_free_tier_requests\"\n  quota_id: \"GenerateRequestsPerMinutePerProjectPerModel-FreeTier\"\n  quota_dimensions {\n    key: \"model\"\n    value: \"gemini-2.0-flash\"\n  }\n  quota_dimensions {\n    key: \"location\"\n    value: \"global\"\n  }\n}\nviolations {\n  quota_metric: \"generativelanguage.googleapis.com/generate_content_free_tier_input_token_count\"\n  quota_id: \"GenerateContentInputTokensPerModelPerMinute-FreeTier\"\n  quota_dimensions {\n    key: \"model\"\n    value: \"gemini-2.0-flash\"\n  }\n  quota_dimensions {\n    key: \"location\"\n    value: \"global\"\n  }\n}\n, retry_delay {\n  seconds: 6\n}\n]"
+  },
+  {
+    "timestamp": "2026-05-16T13:07:57.836112+00:00",
+    "topic": null,
+    "dataset_url": null,
+    "chart_type": null,
+    "extreme_segment": null,
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "fail",
+      "fetcher": "pending",
+      "cleaner": "pending",
+      "analyzer": "pending",
+      "chart_selector": "pending",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Topic discovery failed: Gemini returned invalid JSON.\nRaw: {\n  \"dataset_name\": \"Year of smallpox eradication by country - WHO (1988)\",\n  \"topic\": \"The End of an Ancient\nError: Unterminated string starting at: line 3 column 12 (char 87)"
+  },
+  {
+    "timestamp": "2026-05-16T13:09:39.886260+00:00",
+    "topic": null,
+    "dataset_url": null,
+    "chart_type": null,
+    "extreme_segment": null,
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "fail",
+      "fetcher": "pending",
+      "cleaner": "pending",
+      "analyzer": "pending",
+      "chart_selector": "pending",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Topic discovery failed: Gemini returned invalid JSON after 3 attempts.\nRaw: {\n  \"dataset_name\": \"Smallpox cases by country 1920-1977\",\nError: Expecting property name enclosed in double quotes: line 2 column 57 (char 58)"
   }
 ]

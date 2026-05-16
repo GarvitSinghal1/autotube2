@@ -9,7 +9,7 @@ import json
 import re
 
 import pandas as pd
-import google.generativeai as genai
+from google import genai
 
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL, CHART_TYPES
 
@@ -98,8 +98,7 @@ def _gemini_tiebreak(
     if not GEMINI_API_KEY:
         return default
 
-    genai.configure(api_key=GEMINI_API_KEY)
-    model = genai.GenerativeModel(GEMINI_MODEL)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
     entities = list(df_yearly["entity"].unique()[:20])
     n_entities = df_yearly["entity"].nunique()
@@ -127,7 +126,10 @@ Return ONLY the chart type name, nothing else.
     max_retries = 3
     for attempt in range(max_retries):
         try:
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+            )
             result = response.text.strip().lower().replace('"', "").replace("'", "")
             if result in CHART_TYPES:
                 return result
