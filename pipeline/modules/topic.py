@@ -1,65 +1,68 @@
 """
-topic.py — Uses Gemini to discover a compelling topic and locate a free public dataset.
+topic.py — Discovers a compelling topic by fetching real datasets and asking Gemini to choose.
 
 Returns a dict with topic, description, source, URL, and format.
 """
 
 import json
 import re
+import random
+import urllib.parse
+import requests
 import google.generativeai as genai
 
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
 SYSTEM_PROMPT = """\
-You are a data journalist who finds compelling, publicly available datasets for YouTube videos. You only select datasets that are:
-- Free and directly downloadable (CSV, JSON, or accessible via a public API with no auth key)
-- Contain time-series data spanning at least 10 years
-- Cover an inherently interesting topic that general audiences would find surprising, dramatic, or emotionally engaging
-- Come from reputable sources: World Bank, Our World in Data, UN, Wikipedia, US Census, NOAA, NASA, IMF, or similar
-
-Topics can be anything: economics, population, military, sports records, technology adoption, climate, disease, trade, energy, crime, culture. Fully open.
-
-You always return the actual direct download URL, not a landing page.
-
-IMPORTANT: Prefer datasets from these sources and URL patterns that are known to work:
-- Our World in Data: https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/<dataset-name>/<dataset-name>.csv
-- Our World in Data (new): https://catalog.ourworldindata.org/garden/... .csv
-- World Bank API: https://api.worldbank.org/v2/country/all/indicator/<INDICATOR>?format=json&per_page=10000&date=1960:2023
-- GitHub raw CSV files from reputable data repos
-
-AVOID:
-- URLs that require clicking through a web UI to download
-- ZIP files
-- World Bank CSV bulk downloads (the zip format ones)
-- URLs that redirect to HTML pages
+You are an expert data journalist curating topics for YouTube data visualization videos.
+You will be provided with a list of real dataset names from Our World in Data.
+Your job is to select the single MOST fascinating, surprising, or dramatic dataset from the list.
+Choose a topic that would make a great animated bar chart race, line chart race, or map animation.
+Avoid boring or overdone topics like basic GDP, population, or CO2 emissions unless there is a very unique angle.
 
 You MUST respond with ONLY a valid JSON object, no markdown, no explanation:
 {
-  "topic": "descriptive topic name with date range",
-  "description": "one sentence about why this is interesting",
-  "source": "source organization name",
-  "url": "direct download URL",
-  "format": "csv or json or api"
+  "dataset_name": "the exact name you chose from the list provided",
+  "topic": "a catchy, descriptive title for the YouTube video",
+  "description": "one sentence explaining why this data is compelling to watch"
 }
 """
 
-USER_PROMPT = """\
-Find me a fascinating dataset for a data visualization YouTube video. Pick something that would make a great animated bar chart race, line chart race, or map animation. The data should have multiple entities (countries, companies, teams, etc.) competing or changing over time.
+_FALLBACK_OWID_FOLDERS = [
+    "Child Mortality - Gapminder",
+    "CO2 emissions - Global Carbon Project",
+    "Economic growth - Maddison Project Database",
+    "Energy consumption by source - BP",
+    "Life expectancy - WHO",
+    "Military Expenditure - SIPRI",
+    "Population - UN",
+    "Urban population - UN",
+    "Internet users - World Bank",
+    "Homicide rates - UNODC",
+    "Nuclear weapons - FAS",
+    "Renewable Energy - BP",
+    "Space exploration - NASA",
+]
 
-Choose a topic that has NOT been overdone on YouTube. Avoid GDP, population, and CO2 emissions — those have been done to death. Find something more niche and surprising.
-
-Return ONLY the JSON object, nothing else.
-"""
+def _get_owid_dataset_list() -> list[str]:
+    """Fetch the list of dataset directories from Our World in Data's GitHub."""
+    url = "https://api.github.com/repos/owid/owid-datasets/contents/datasets"
+    try:
+        resp = requests.get(url, timeout=10)
+        if resp.status_code == 200:
+            data = resp.json()
+            return [item["name"] for item in data if item["type"] == "dir"]
+    except Exception as e:
+        print(f"[topic] Failed to fetch OWID repo (offline?): {e}")
+    
+    return _FALLBACK_OWID_FOLDERS
 
 
 def discover_topic() -> dict:
-    """Use Gemini to discover a compelling topic and dataset URL.
+    """Use Gemini to select a compelling topic from a real list of datasets.
 
     Returns:
         dict with keys: topic, description, source, url, format
-
-    Raises:
-        RuntimeError: If Gemini fails to return valid JSON or the API call fails.
     """
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
@@ -70,14 +73,22 @@ def discover_topic() -> dict:
         system_instruction=SYSTEM_PROMPT,
     )
 
+    # 1. Get real dataset options
+    all_datasets = _get_owid_dataset_list()
+    sample_size = min(25, len(all_datasets))
+    sample_names = random.sample(all_datasets, sample_size)
+    
+    user_prompt = "Here are the available datasets. Pick the most fascinating one:\n\n" + "\n".join(sample_names)
+
+    # 2. Ask Gemini to choose
     import time
     max_retries = 3
     for attempt in range(max_retries):
         try:
             response = model.generate_content(
-                USER_PROMPT,
+                user_prompt,
                 generation_config=genai.types.GenerationConfig(
-                    temperature=1.0,  # high creativity for diverse topics
+                    temperature=1.0,
                     max_output_tokens=1024,
                 ),
             )
@@ -89,8 +100,6 @@ def discover_topic() -> dict:
             time.sleep(30)
 
     raw_text = response.text.strip()
-
-    # Strip markdown code fences if present
     if raw_text.startswith("```"):
         raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
         raw_text = re.sub(r"\s*```$", "", raw_text)
@@ -98,20 +107,29 @@ def discover_topic() -> dict:
     try:
         result = json.loads(raw_text)
     except json.JSONDecodeError as e:
-        raise RuntimeError(
-            f"Gemini returned invalid JSON.\nRaw response:\n{raw_text}\nError: {e}"
-        ) from e
+        raise RuntimeError(f"Gemini returned invalid JSON.\nRaw: {raw_text}\nError: {e}") from e
 
-    required_keys = {"topic", "description", "source", "url", "format"}
-    missing = required_keys - set(result.keys())
-    if missing:
-        raise RuntimeError(f"Gemini response missing keys: {missing}\nGot: {result}")
+    chosen_name = result.get("dataset_name")
+    if not chosen_name or chosen_name not in sample_names:
+        # Fallback if Gemini hallucinates a name not in the list
+        chosen_name = sample_names[0]
+        print(f"[topic] Gemini selected invalid dataset, falling back to: {chosen_name}")
 
-    if result["format"] not in ("csv", "json", "api"):
-        raise RuntimeError(f"Unsupported format: {result['format']}")
+    # 3. Construct deterministic URL based on OWID repo conventions
+    # Structure: master/datasets/Folder Name/Folder Name.csv
+    encoded_name = urllib.parse.quote(chosen_name)
+    url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/{encoded_name}/{encoded_name}.csv"
 
-    print(f"[topic] Discovered: {result['topic']}")
-    print(f"[topic] Source: {result['source']}")
-    print(f"[topic] URL: {result['url']}")
+    final_result = {
+        "topic": result.get("topic", chosen_name),
+        "description": result.get("description", "A fascinating dataset from Our World in Data."),
+        "source": "Our World in Data",
+        "url": url,
+        "format": "csv"
+    }
 
-    return result
+    print(f"[topic] Selected Dataset: {chosen_name}")
+    print(f"[topic] Topic Title: {final_result['topic']}")
+    print(f"[topic] URL: {final_result['url']}")
+
+    return final_result
