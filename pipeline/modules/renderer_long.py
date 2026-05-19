@@ -97,7 +97,21 @@ def render_long_form(
     source = topic_info.get("source", "")
     hook = topic_info.get("hook", title)
 
-    # Create figure once; axes recreated via add_axes
+    # Calculate frames per step to hit target duration (5-10 min)
+    hold_frames = FPS * 2
+    usable_frames = LONG_FORM_MIN_DURATION * FPS - INTRO_FRAMES - hold_frames
+    frames_per_step = usable_frames // max(n_steps - 1, 1)
+    frames_per_step = max(20, frames_per_step)  # at least 20 frames for smooth pacing
+    
+    # Cap to LONG_FORM_MAX_DURATION
+    max_usable_frames = LONG_FORM_MAX_DURATION * FPS - INTRO_FRAMES - hold_frames
+    frames_per_step = min(frames_per_step, max_usable_frames // max(n_steps - 1, 1))
+    frames_per_step = max(frames_per_step, 4)
+
+    est_duration = (INTRO_FRAMES + (n_steps - 1) * frames_per_step + hold_frames) / FPS
+    print(f"[renderer_long] Frames/step: {frames_per_step}, Duration: {est_duration:.0f}s")
+
+    # Create figure once
     fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
     fig.patch.set_facecolor("#000000")
     ax = fig.add_axes([0.15, 0.10, 0.80, 0.78])
@@ -108,6 +122,11 @@ def render_long_form(
     for f in range(INTRO_FRAMES):
         _draw_intro_frame(fig, hook, title, f, INTRO_FRAMES, FRAMES_LONG_DIR, frame_number)
         frame_number += 1
+
+    # Recreate axes after fig.clf() destroyed it in intro
+    fig.clf()
+    fig.patch.set_facecolor("#000000")
+    ax = fig.add_axes([0.15, 0.10, 0.80, 0.78])
 
     # ── Chart animation ──────────────────────────────────────────────────
     # Track each entity's previous slot rank (for smooth y interpolation)
@@ -129,8 +148,8 @@ def render_long_form(
         ts_end   = pd.Timestamp(time_steps[step_idx + 1])
         date_gap_days = (ts_end - ts_start).days
 
-        for interp_frame in range(LONG_FRAMES_PER_STEP):
-            alpha = interp_frame / LONG_FRAMES_PER_STEP
+        for interp_frame in range(frames_per_step):
+            alpha = interp_frame / frames_per_step
             alpha = _ease(alpha)
 
             # Interpolate all values
@@ -269,11 +288,12 @@ def _draw_intro_frame(
             transform=fig.transFigure,
         )
 
-    plt.savefig(
+    fig.savefig(
         frames_dir / f"frame_{frame_number:05d}.png",
         dpi=100,
         facecolor="#000000",
         pad_inches=0,
+        pil_kwargs={"compress_level": 1},
     )
 
 
@@ -302,8 +322,13 @@ def _draw_chart_frame(
     ax.spines["bottom"].set_color("#444444")
 
     if not entities_data:
-        plt.savefig(frames_dir / f"frame_{frame_number:05d}.png",
-                    dpi=100, facecolor="#000000", pad_inches=0)
+        fig.savefig(
+            frames_dir / f"frame_{frame_number:05d}.png",
+            dpi=100,
+            facecolor="#000000",
+            pad_inches=0,
+            pil_kwargs={"compress_level": 1},
+        )
         return
 
     max_value = max(d["value"] for d in entities_data) * 1.1
@@ -338,7 +363,7 @@ def _draw_chart_frame(
     ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=8)
 
     # Ghost year counter — figure-level, bottom right
-    fig.text(
+    ax.text(
         0.95, 0.08, date_label,
         ha="right", va="bottom",
         color="white", alpha=0.15,
@@ -347,7 +372,7 @@ def _draw_chart_frame(
     )
 
     # Title — figure-level, top left
-    fig.text(
+    ax.text(
         0.02, 0.97, title,
         ha="left", va="top",
         color="white", fontsize=13, fontweight="bold",
@@ -356,18 +381,19 @@ def _draw_chart_frame(
 
     # Source — below title
     if source:
-        fig.text(
+        ax.text(
             0.02, 0.93, f"Source: {source}",
             ha="left", va="top",
             color="#888888", fontsize=9, style="italic",
             transform=fig.transFigure,
         )
 
-    plt.savefig(
+    fig.savefig(
         frames_dir / f"frame_{frame_number:05d}.png",
         dpi=100,
         facecolor="#000000",
         pad_inches=0,
+        pil_kwargs={"compress_level": 1},
     )
 
 

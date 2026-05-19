@@ -37,47 +37,70 @@ def _execute_steps(logger: PipelineLogger) -> None:
     """Run each pipeline step sequentially."""
     state: dict = {}
 
-    # ── Step 1: Topic Discovery ──────────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("STEP 1: Topic Discovery")
-    print("=" * 60)
-    try:
-        from pipeline.modules.topic import discover_topic
-        topic_info = discover_topic()
-        state["topic_info"] = topic_info
-        logger.set_field("topic", topic_info["topic"])
-        logger.set_field("dataset_url", topic_info["url"])
-        logger.mark_step("topic", "pass")
-    except Exception as e:
-        logger.mark_step("topic", "fail")
-        raise RuntimeError(f"Topic discovery failed: {e}") from e
+    blacklist = set()
+    max_discovery_attempts = 5
+    discovered = False
 
-    # ── Step 2: Fetch Dataset ────────────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("STEP 2: Fetch Dataset")
-    print("=" * 60)
-    try:
-        from pipeline.modules.fetcher import fetch_dataset
-        df_raw = fetch_dataset(topic_info["url"], topic_info["format"])
-        state["df_raw"] = df_raw
-        logger.mark_step("fetcher", "pass")
-    except Exception as e:
-        logger.mark_step("fetcher", "fail")
-        raise RuntimeError(f"Dataset fetch failed: {e}") from e
+    for attempt in range(max_discovery_attempts):
+        print(f"\n--- Data Acquisition Attempt {attempt + 1}/{max_discovery_attempts} ---")
+        try:
+            # ── Step 1: Topic Discovery ──────────────────────────────────────────
+            print("\n" + "=" * 60)
+            print("STEP 1: Topic Discovery")
+            print("=" * 60)
+            from pipeline.modules.topic import discover_topic
+            topic_info = discover_topic(blacklist=blacklist)
+            state["topic_info"] = topic_info
+            logger.set_field("topic", topic_info["topic"])
+            logger.set_field("dataset_url", topic_info["url"])
 
-    # ── Step 3: Clean Data ───────────────────────────────────────────────
-    print("\n" + "=" * 60)
-    print("STEP 3: Clean & Normalize Data")
-    print("=" * 60)
-    try:
-        from pipeline.modules.cleaner import clean_dataframe
-        df_monthly, df_yearly = clean_dataframe(df_raw, topic_info)
-        state["df_monthly"] = df_monthly
-        state["df_yearly"] = df_yearly
-        logger.mark_step("cleaner", "pass")
-    except Exception as e:
-        logger.mark_step("cleaner", "fail")
-        raise RuntimeError(f"Data cleaning failed: {e}") from e
+            # ── Step 2: Fetch Dataset ────────────────────────────────────────────
+            print("\n" + "=" * 60)
+            print("STEP 2: Fetch Dataset")
+            print("=" * 60)
+            from pipeline.modules.fetcher import fetch_dataset
+            df_raw = fetch_dataset(topic_info["url"], topic_info["format"])
+            state["df_raw"] = df_raw
+
+            # ── Step 3: Clean Data ───────────────────────────────────────────────
+            print("\n" + "=" * 60)
+            print("STEP 3: Clean & Normalize Data")
+            print("=" * 60)
+            from pipeline.modules.cleaner import clean_dataframe
+            df_monthly, df_yearly = clean_dataframe(df_raw, topic_info)
+            state["df_monthly"] = df_monthly
+            state["df_yearly"] = df_yearly
+
+            logger.mark_step("topic", "pass")
+            logger.mark_step("fetcher", "pass")
+            logger.mark_step("cleaner", "pass")
+            discovered = True
+            break
+        except Exception as e:
+            dataset_name = state.get("topic_info", {}).get("dataset_name")
+            if dataset_name:
+                print(f"\n[main] Attempt failed for dataset '{dataset_name}': {e}")
+                blacklist.add(dataset_name)
+            else:
+                print(f"\n[main] Attempt failed: {e}")
+
+            # Reset state for next attempt
+            state.pop("topic_info", None)
+            state.pop("df_raw", None)
+            state.pop("df_monthly", None)
+            state.pop("df_yearly", None)
+
+            if attempt == max_discovery_attempts - 1:
+                logger.mark_step("topic", "fail")
+                logger.mark_step("fetcher", "fail")
+                logger.mark_step("cleaner", "fail")
+                raise RuntimeError(f"Failed to acquire a valid dataset after {max_discovery_attempts} attempts.") from e
+            print("Retrying with another topic...")
+
+    # Extract df_monthly/df_yearly for subsequent steps
+    df_monthly = state["df_monthly"]
+    df_yearly = state["df_yearly"]
+    topic_info = state["topic_info"]
 
     # ── Step 4: Analyze Extremes ─────────────────────────────────────────
     print("\n" + "=" * 60)
@@ -131,8 +154,23 @@ def _execute_steps(logger: PipelineLogger) -> None:
     print("=" * 60)
     try:
         from pipeline.modules.renderer_long import render_long_form
+        from pipeline.config import FPS
+        
+        # Decide whether to use monthly or yearly data for long-form to avoid rendering bottleneck
+        n_months = len(df_monthly["date"].unique())
+        target_duration = 300  # 5 minutes
+        target_frames = target_duration * FPS
+        usable_frames = target_frames - 90 - (FPS * 2)  # minus intro/outro
+        
+        if n_months > 1 and (usable_frames // (n_months - 1)) < 12:
+            print(f"[main] Monthly steps ({n_months}) would result in too many frames / too fast transitions. Using yearly data for long-form.")
+            df_long = df_yearly
+        else:
+            print(f"[main] Using monthly data for long-form ({n_months} steps).")
+            df_long = df_monthly
+
         long_path, _ = render_long_form(
-            df_monthly, chart_type, topic_info, entity_colors=entity_colors
+            df_long, chart_type, topic_info, entity_colors=entity_colors
         )
         state["long_path"] = long_path
         logger.mark_step("renderer_long", "pass")

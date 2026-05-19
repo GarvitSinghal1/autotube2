@@ -9,6 +9,7 @@ import re
 import random
 import urllib.parse
 import requests
+from typing import Optional
 from google import genai
 from google.genai import types
 
@@ -59,7 +60,7 @@ def _get_owid_dataset_list() -> list[str]:
     return _FALLBACK_OWID_FOLDERS
 
 
-def discover_topic() -> dict:
+def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     """Use Gemini to select a compelling topic from a real list of datasets.
 
     Returns:
@@ -72,6 +73,8 @@ def discover_topic() -> dict:
 
     # 1. Get real dataset options
     all_datasets = _get_owid_dataset_list()
+    if blacklist:
+        all_datasets = [d for d in all_datasets if d not in blacklist]
     sample_size = min(25, len(all_datasets))
     sample_names = random.sample(all_datasets, sample_size)
     
@@ -120,6 +123,7 @@ def discover_topic() -> dict:
     url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/{encoded_name}/{encoded_name}.csv"
 
     final_result = {
+        "dataset_name": chosen_name,
         "topic": result.get("topic", chosen_name),
         "description": result.get("description", "A fascinating dataset from Our World in Data."),
         "source": "Our World in Data",

@@ -112,6 +112,11 @@ def render_short(
         _draw_intro_frame(fig, hook, title, f, SHORT_INTRO_FRAMES, FRAMES_SHORT_DIR, frame_number)
         frame_number += 1
 
+    # Recreate axes after fig.clf() destroyed it in intro
+    fig.clf()
+    fig.patch.set_facecolor("#000000")
+    ax = fig.add_axes([0.20, 0.08, 0.75, 0.78])
+
     # ── Chart animation ──────────────────────────────────────────────────
     prev_ranks: dict[str, int] = {}
     entities_data = []
@@ -204,8 +209,13 @@ def _draw_short_chart_frame(
     ax.spines["bottom"].set_color("#444444")
 
     if not entities_data:
-        plt.savefig(frames_dir / f"frame_{frame_number:05d}.png",
-                    dpi=100, facecolor="#000000", pad_inches=0)
+        fig.savefig(
+            frames_dir / f"frame_{frame_number:05d}.png",
+            dpi=100,
+            facecolor="#000000",
+            pad_inches=0,
+            pil_kwargs={"compress_level": 1},
+        )
         return
 
     max_value = max(d["value"] for d in entities_data) * 1.1
@@ -239,7 +249,7 @@ def _draw_short_chart_frame(
     ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=7)
 
     # Ghost year — figure-level, bottom right, large and transparent
-    fig.text(
+    ax.text(
         0.95, 0.05, date_label,
         ha="right", va="bottom",
         color="white", alpha=0.15,
@@ -248,7 +258,7 @@ def _draw_short_chart_frame(
     )
 
     # Title — figure-level, top
-    fig.text(
+    ax.text(
         0.5, 0.97, title,
         ha="center", va="top",
         color="white", fontsize=12, fontweight="bold",
@@ -256,18 +266,19 @@ def _draw_short_chart_frame(
     )
 
     if source:
-        fig.text(
+        ax.text(
             0.5, 0.93, f"Source: {source}",
             ha="center", va="top",
             color="#888888", fontsize=8, style="italic",
             transform=fig.transFigure,
         )
 
-    plt.savefig(
+    fig.savefig(
         frames_dir / f"frame_{frame_number:05d}.png",
         dpi=100,
         facecolor="#000000",
         pad_inches=0,
+        pil_kwargs={"compress_level": 1},
     )
 
 
