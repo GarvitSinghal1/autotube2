@@ -14,7 +14,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from pipeline.config import TMP_DIR
+from pipeline.config import TMP_DIR, ONLY_SHORTS
 from pipeline.modules.logger import PipelineLogger
 
 
@@ -152,31 +152,36 @@ def _execute_steps(logger: PipelineLogger) -> None:
     print("\n" + "=" * 60)
     print("STEP 7: Render Long-Form Video")
     print("=" * 60)
-    try:
-        from pipeline.modules.renderer_long import render_long_form
-        from pipeline.config import FPS
-        
-        # Decide whether to use monthly or yearly data for long-form to avoid rendering bottleneck
-        n_months = len(df_monthly["date"].unique())
-        target_duration = 300  # 5 minutes
-        target_frames = target_duration * FPS
-        usable_frames = target_frames - 90 - (FPS * 2)  # minus intro/outro
-        
-        if n_months > 1 and (usable_frames // (n_months - 1)) < 12:
-            print(f"[main] Monthly steps ({n_months}) would result in too many frames / too fast transitions. Using yearly data for long-form.")
-            df_long = df_yearly
-        else:
-            print(f"[main] Using monthly data for long-form ({n_months} steps).")
-            df_long = df_monthly
-
-        long_path, _ = render_long_form(
-            df_long, chart_type, topic_info, entity_colors=entity_colors
-        )
-        state["long_path"] = long_path
+    long_path = None
+    if ONLY_SHORTS:
+        print("[main] ONLY_SHORTS mode active. Skipping long-form rendering.")
         logger.mark_step("renderer_long", "pass")
-    except Exception as e:
-        logger.mark_step("renderer_long", "fail")
-        raise RuntimeError(f"Long-form rendering failed: {e}") from e
+    else:
+        try:
+            from pipeline.modules.renderer_long import render_long_form
+            from pipeline.config import FPS
+            
+            # Decide whether to use monthly or yearly data for long-form to avoid rendering bottleneck
+            n_months = len(df_monthly["date"].unique())
+            target_duration = 300  # 5 minutes
+            target_frames = target_duration * FPS
+            usable_frames = target_frames - 90 - (FPS * 2)  # minus intro/outro
+            
+            if n_months > 1 and (usable_frames // (n_months - 1)) < 12:
+                print(f"[main] Monthly steps ({n_months}) would result in too many frames / too fast transitions. Using yearly data for long-form.")
+                df_long = df_yearly
+            else:
+                print(f"[main] Using monthly data for long-form ({n_months} steps).")
+                df_long = df_monthly
+
+            long_path, _ = render_long_form(
+                df_long, chart_type, topic_info, entity_colors=entity_colors
+            )
+            state["long_path"] = long_path
+            logger.mark_step("renderer_long", "pass")
+        except Exception as e:
+            logger.mark_step("renderer_long", "fail")
+            raise RuntimeError(f"Long-form rendering failed: {e}") from e
 
     # ── Step 8: Generate Metadata ────────────────────────────────────────
     print("\n" + "=" * 60)
@@ -201,18 +206,20 @@ def _execute_steps(logger: PipelineLogger) -> None:
         output_dir.mkdir(exist_ok=True)
         
         # Copy videos
-        saved_long = output_dir / "long_form.mp4"
         saved_short = output_dir / "short.mp4"
-        shutil.copy2(long_path, saved_long)
         shutil.copy2(short_path, saved_short)
+        print(f"[main] Saved short video to: {saved_short}")
+
+        if long_path:
+            saved_long = output_dir / "long_form.mp4"
+            shutil.copy2(long_path, saved_long)
+            print(f"[main] Saved long-form video to: {saved_long}")
         
         # Save metadata
         metadata_file = output_dir / "metadata.json"
         with open(metadata_file, "w", encoding="utf-8") as f:
             json.dump(video_metadata, f, indent=2)
             
-        print(f"[main] Saved long-form video to: {saved_long}")
-        print(f"[main] Saved short video to: {saved_short}")
         print(f"[main] Saved metadata to: {metadata_file}")
     except Exception as e:
         print(f"[main] Warning: Failed to save outputs locally: {e}")
@@ -233,7 +240,8 @@ def _execute_steps(logger: PipelineLogger) -> None:
 
     print("\n" + "=" * 60)
     print("✅ Pipeline completed successfully!")
-    print(f"   Long-form: {urls['long_form_url']}")
+    if long_path:
+        print(f"   Long-form: {urls['long_form_url']}")
     print(f"   Short:     {urls['short_url']}")
     print("=" * 60)
 

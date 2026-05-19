@@ -20,7 +20,9 @@ You are an expert data journalist curating topics for YouTube data visualization
 You will be provided with a list of real dataset names from Our World in Data.
 Your job is to select the single MOST fascinating, surprising, or dramatic dataset from the list.
 Choose a topic that would make a great animated bar chart race, line chart race, or map animation.
-Avoid boring or overdone topics like basic GDP, population, or CO2 emissions unless there is a very unique angle.
+
+CRITICAL: Avoid dry, boring academic topics, niche development/clinical metrics (e.g. Guinea worm cases, basic agricultural yields, specific nutrient deficiencies, diarrhea rates). 
+Instead, prioritize dramatic human stories, global conflicts, technological transitions, changes in lifestyles/addictions (food, alcohol, tech), existential threats (nuclear weapons, natural disasters), or major historical shifts.
 
 You MUST respond with ONLY a valid JSON object, no markdown, no explanation:
 {
@@ -44,6 +46,30 @@ _FALLBACK_OWID_FOLDERS = [
     "Nuclear weapons - FAS",
     "Renewable Energy - BP",
     "Space exploration - NASA",
+]
+
+# Keyword filters to guarantee interesting topics on YouTube
+INTERESTING_KEYWORDS = [
+    "military", "weapon", "nuclear", "war", "conflict", "battle", "defense", "armaments",
+    "space", "nasa", "rocket", "exploration", "satellite",
+    "internet", "mobile", "phone", "technology", "computer", "ai", "robot", "patent", "innovation",
+    "homicide", "crime", "murder", "suicide", "terrorism", "disaster", "earthquake", "tsunami", "volcano",
+    "diet", "food", "nutrition", "sugar", "meat", "alcohol", "beer", "wine", "smoking", "tobacco", "drug", "addiction",
+    "democracy", "regime", "election", "political", "government", "freedom", "human rights",
+    "deforestation", "forest", "extinction", "species", "whale", "animal", "wildlife",
+    "energy", "oil", "coal", "gas", "solar", "wind", "renewable", "electricity",
+    "billionaire", "wealth", "poverty", "inequality",
+    "olympic", "medal", "sports", "leisure",
+    "pandemic", "epidemic", "plague", "influenza", "covid", "death"
+]
+
+BORING_KEYWORDS = [
+    "guinea", "worm", "diarrhea", "diarrheal", "deficiency", "malnutrition", "micronutrient",
+    "tuberculosis", "malaria", "tetanus", "measles", "hepatitis", "meningitis", "encephalitis",
+    "pertussis", "diphtheria", "leprosy", "trachoma", "onchocerciasis", "filariasis", "rabies",
+    "dengue", "fever", "chagas", "leishmaniasis", "trypanosomiasis", "hookworm", "trichuriasis",
+    "ascariasis", "nematode", "fluke", "sanitation", "hygiene", "wastewater", "treatment",
+    "deworming", "iodized", "vitamin", "breastfeeding", "stunting", "wasting", "anaemia"
 ]
 
 def _get_owid_dataset_list() -> list[str]:
@@ -75,6 +101,22 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     all_datasets = _get_owid_dataset_list()
     if blacklist:
         all_datasets = [d for d in all_datasets if d not in blacklist]
+        
+    # Filter datasets to keep only potentially interesting ones
+    interesting_datasets = []
+    for d in all_datasets:
+        name_lower = d.lower()
+        has_interesting = any(w in name_lower for w in INTERESTING_KEYWORDS)
+        has_boring = any(w in name_lower for w in BORING_KEYWORDS)
+        if has_interesting and not has_boring:
+            interesting_datasets.append(d)
+            
+    print(f"[topic] Filtered {len(all_datasets)} datasets down to {len(interesting_datasets)} interesting ones.")
+    
+    # Fallback to all datasets if filtering left too few
+    if len(interesting_datasets) >= 10:
+        all_datasets = interesting_datasets
+
     sample_size = min(25, len(all_datasets))
     sample_names = random.sample(all_datasets, sample_size)
     

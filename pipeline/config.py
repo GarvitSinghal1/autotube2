@@ -79,6 +79,9 @@ YOUTUBE_REFRESH_TOKEN = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
 # ── Gemini model ─────────────────────────────────────────────────────────────
 GEMINI_MODEL = "gemini-2.5-flash"
 
+# ── Pipeline Modes ───────────────────────────────────────────────────────────
+ONLY_SHORTS = True
+
 # ── Chart types ──────────────────────────────────────────────────────────────
 CHART_TYPES = [
     "bar_chart_race",

@@ -8,6 +8,7 @@ and Short for 12:00 PM UTC the next day.
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from typing import Optional
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -21,14 +22,14 @@ TOKEN_URI = "https://oauth2.googleapis.com/token"
 
 
 def upload_both_videos(
-    long_form_path: Path,
+    long_form_path: Optional[Path],
     short_path: Path,
     metadata: dict,
 ) -> dict:
     """Upload both long-form and Short videos to YouTube.
 
     Args:
-        long_form_path: Path to the long-form MP4 file.
+        long_form_path: Optional path to the long-form MP4 file.
         short_path: Path to the Short MP4 file.
         metadata: Dict with 'long_form' and 'short' sub-dicts, each containing
                   title, description, and tags.
@@ -52,18 +53,22 @@ def upload_both_videos(
     long_publish = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
     short_publish = tomorrow.replace(hour=12, minute=0, second=0, microsecond=0)
 
-    # Upload long form
-    print("[uploader] Uploading long-form video...")
-    long_url = _upload_video(
-        youtube=youtube,
-        file_path=long_form_path,
-        title=metadata["long_form"]["title"],
-        description=metadata["long_form"]["description"],
-        tags=metadata["long_form"]["tags"],
-        category_id=CATEGORY_EDUCATION,
-        publish_at=long_publish,
-        is_short=False,
-    )
+    # Upload long form if provided
+    long_url = None
+    if long_form_path:
+        print("[uploader] Uploading long-form video...")
+        long_url = _upload_video(
+            youtube=youtube,
+            file_path=long_form_path,
+            title=metadata["long_form"]["title"],
+            description=metadata["long_form"]["description"],
+            tags=metadata["long_form"]["tags"],
+            category_id=CATEGORY_EDUCATION,
+            publish_at=long_publish,
+            is_short=False,
+        )
+    else:
+        print("[uploader] Long-form video upload skipped (ONLY_SHORTS mode active).")
 
     # Upload Short
     print("[uploader] Uploading Short...")
@@ -79,7 +84,7 @@ def upload_both_videos(
     )
 
     return {
-        "long_form_url": long_url,
+        "long_form_url": long_url or "Skipped",
         "short_url": short_url,
     }
 

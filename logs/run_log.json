@@ -442,5 +442,53 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-19T14:49:59.674675+00:00",
+    "topic": "The World's Nuclear Explosions: A Chilling History of Testing",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20tests%20%E2%80%93%20Arms%20Control%20Association%20%282020%29/Nuclear%20weapons%20tests%20%E2%80%93%20Arms%20Control%20Association%20%282020%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1945,
+      "end_year": 1962
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-19T14:53:03.021227+00:00",
+    "topic": "The Rise and Fall of Airline Hijackings: A Global History",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Airline%20hijacking%20-%20Aviation%20Safety%20Network/Airline%20hijacking%20-%20Aviation%20Safety%20Network.csv",
+    "chart_type": "line_chart_race",
+    "extreme_segment": {
+      "start_year": 1989,
+      "end_year": 2001
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
   }
 ]
