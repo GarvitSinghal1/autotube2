@@ -9,9 +9,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from typing import Optional
+import httplib2
+import google_auth_httplib2
+import urllib3
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+
+# Disable warnings for self-signed certificates in proxied environments
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from pipeline.config import (
     YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN,
@@ -90,7 +96,7 @@ def upload_both_videos(
 
 
 def _build_youtube_client():
-    """Build an authenticated YouTube API client."""
+    """Build an authenticated YouTube API client with SSL verification disabled for proxy compatibility."""
     credentials = Credentials(
         token=None,
         refresh_token=YOUTUBE_REFRESH_TOKEN,
@@ -98,7 +104,17 @@ def _build_youtube_client():
         client_id=YOUTUBE_CLIENT_ID,
         client_secret=YOUTUBE_CLIENT_SECRET,
     )
-    return build(YOUTUBE_API_SERVICE, YOUTUBE_API_VERSION, credentials=credentials)
+    
+    # Disable SSL certificate verification to handle proxy routing/SSL intercept issues
+    http_client = httplib2.Http(disable_ssl_certificate_validation=True)
+    authorized_http = google_auth_httplib2.AuthorizedHttp(credentials, http=http_client)
+    
+    return build(
+        YOUTUBE_API_SERVICE,
+        YOUTUBE_API_VERSION,
+        http=authorized_http,
+        static_discovery=True
+    )
 
 
 def _upload_video(

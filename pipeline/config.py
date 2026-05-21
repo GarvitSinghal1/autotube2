@@ -13,7 +13,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # ── Directories ──────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-TMP_DIR = Path("/tmp/dataviz")
+TMP_DIR = PROJECT_ROOT / "tmp"
 FRAMES_LONG_DIR = TMP_DIR / "frames_long"
 FRAMES_SHORT_DIR = TMP_DIR / "frames_short"
 LONG_FORM_RAW = TMP_DIR / "long_form_raw.mp4"
@@ -72,6 +72,8 @@ ACCENT_COLORS = [
 
 # ── API keys & secrets ───────────────────────────────────────────────────────
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+# YouTube Credentials (must be authorized for the second channel)
 YOUTUBE_CLIENT_ID = os.environ.get("YOUTUBE_CLIENT_ID", "")
 YOUTUBE_CLIENT_SECRET = os.environ.get("YOUTUBE_CLIENT_SECRET", "")
 YOUTUBE_REFRESH_TOKEN = os.environ.get("YOUTUBE_REFRESH_TOKEN", "")
@@ -102,3 +104,7 @@ CATEGORY_NEWS = "25"
 # ── Minimum data requirements ───────────────────────────────────────────────
 MIN_YEARS_REQUIRED = 10
 TOP_N_ENTITIES = 10  # shown in bar chart race at any given frame
+
+# ── Database index ──────────────────────────────────────────────────────────
+DATASETS_INDEX_DB = PROJECT_ROOT / "pipeline" / "datasets_index.db"
+

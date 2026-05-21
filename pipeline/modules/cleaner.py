@@ -63,7 +63,7 @@ def clean_dataframe(
     print(f"[cleaner] Columns: {list(df.columns)}")
 
     # --- Step 1: Try to detect column roles automatically ---
-    date_col, entity_col, value_col = _auto_detect_columns(df)
+    date_col, entity_col, value_col = auto_detect_columns(df)
 
     # --- Step 2: If auto-detection fails, ask Gemini ---
     if not all([date_col, entity_col, value_col]):
@@ -153,7 +153,7 @@ def clean_dataframe(
     return df_monthly, df_yearly
 
 
-def _auto_detect_columns(df: pd.DataFrame) -> tuple[Optional[str], Optional[str], Optional[str]]:
+def auto_detect_columns(df: pd.DataFrame) -> tuple[Optional[str], Optional[str], Optional[str]]:
     """Try to auto-detect date, entity, and value columns from column names.
 
     Returns:

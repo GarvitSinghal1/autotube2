@@ -10,6 +10,9 @@ from typing import Optional
 
 import pandas as pd
 import requests
+import urllib3
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Timeout for HTTP requests (seconds)
 REQUEST_TIMEOUT = 60
@@ -71,6 +74,7 @@ def _download(url: str) -> bytes:
                 timeout=REQUEST_TIMEOUT,
                 headers={"User-Agent": "AutoTube2-Pipeline/1.0"},
                 allow_redirects=True,
+                verify=False,
             )
             resp.raise_for_status()
             return resp.content

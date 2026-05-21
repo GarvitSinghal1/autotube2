@@ -583,5 +583,53 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-21T10:23:51.002463+00:00",
+    "topic": "The Nuclear Club: Tracking the World's Atomic Arsenal",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1942,
+      "end_year": 1962
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pending",
+      "renderer_short": "fail",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Short rendering failed: [Errno 1] Operation not permitted: '/tmp/dataviz'"
+  },
+  {
+    "timestamp": "2026-05-21T10:25:28.371875+00:00",
+    "topic": "The Great Escape: 200 Years of Global Extreme Poverty",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Global%20extreme%20poverty%21%20Present%20and%20past%20since%201820%20%28Moatsos%20in%20OECD%2C%202021%29/Global%20extreme%20poverty%21%20Present%20and%20past%20since%201820%20%28Moatsos%20in%20OECD%2C%202021%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1869,
+      "end_year": 1880
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
   }
 ]

@@ -17,4 +17,8 @@ build/
 Thumbs.db
 
 # Temp render files
-/tmp/dataviz/
+tmp/
+
+# Helper script
+get_refresh_token.py
+test_youtube.py

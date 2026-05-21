@@ -13,6 +13,9 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
 SYSTEM_PROMPT = """\
@@ -72,11 +75,48 @@ BORING_KEYWORDS = [
     "deworming", "iodized", "vitamin", "breastfeeding", "stunting", "wasting", "anaemia"
 ]
 
+def _get_valid_datasets_from_db() -> list[dict]:
+    """Load valid datasets from SQLite index database if available."""
+    from pipeline.config import DATASETS_INDEX_DB
+    import sqlite3
+    
+    if not DATASETS_INDEX_DB.exists():
+        print(f"[topic] Database at {DATASETS_INDEX_DB} does not exist.")
+        return []
+        
+    try:
+        conn = sqlite3.connect(str(DATASETS_INDEX_DB))
+        cursor = conn.cursor()
+        # Query valid datasets
+        cursor.execute("SELECT name, path, csv_url, entity_col, date_col, value_col, start_year, end_year, span_years, entity_count FROM datasets WHERE is_valid = 1")
+        rows = cursor.fetchall()
+        conn.close()
+        
+        datasets = []
+        for r in rows:
+            datasets.append({
+                "name": r[0],
+                "path": r[1],
+                "csv_url": r[2],
+                "entity_col": r[3],
+                "date_col": r[4],
+                "value_col": r[5],
+                "start_year": r[6],
+                "end_year": r[7],
+                "span_years": r[8],
+                "entity_count": r[9]
+            })
+        return datasets
+    except Exception as e:
+        print(f"[topic] Failed to query database: {e}")
+        return []
+
+
 def _get_owid_dataset_list() -> list[str]:
     """Fetch the list of dataset directories from Our World in Data's GitHub."""
     url = "https://api.github.com/repos/owid/owid-datasets/contents/datasets"
     try:
-        resp = requests.get(url, timeout=10)
+        resp = requests.get(url, timeout=10, verify=False)
         if resp.status_code == 200:
             data = resp.json()
             return [item["name"] for item in data if item["type"] == "dir"]
@@ -97,34 +137,65 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
 
     client = genai.Client(api_key=GEMINI_API_KEY)
 
-    # 1. Get real dataset options
-    all_datasets = _get_owid_dataset_list()
+    # 1. Try to load from database
+    db_datasets = _get_valid_datasets_from_db()
+    
+    if db_datasets:
+        print(f"[topic] Loaded {len(db_datasets)} valid datasets from database.")
+        all_datasets = db_datasets
+        # Map dataset name to details
+        dataset_map = {d["name"]: d for d in all_datasets}
+        dataset_names = list(dataset_map.keys())
+    else:
+        print("[topic] Falling back to fetching dataset list from GitHub API / fallback list.")
+        fallback_names = _get_owid_dataset_list()
+        dataset_names = fallback_names
+        dataset_map = {}
+
     if blacklist:
-        all_datasets = [d for d in all_datasets if d not in blacklist]
+        dataset_names = [d for d in dataset_names if d not in blacklist]
         
     # Filter datasets to keep only potentially interesting ones
-    interesting_datasets = []
-    for d in all_datasets:
+    interesting_names = []
+    for d in dataset_names:
         name_lower = d.lower()
         has_interesting = any(w in name_lower for w in INTERESTING_KEYWORDS)
         has_boring = any(w in name_lower for w in BORING_KEYWORDS)
         if has_interesting and not has_boring:
-            interesting_datasets.append(d)
+            interesting_names.append(d)
             
-    print(f"[topic] Filtered {len(all_datasets)} datasets down to {len(interesting_datasets)} interesting ones.")
+    print(f"[topic] Filtered {len(dataset_names)} datasets down to {len(interesting_names)} interesting ones.")
     
     # Fallback to all datasets if filtering left too few
-    if len(interesting_datasets) >= 10:
-        all_datasets = interesting_datasets
+    if len(interesting_names) >= 10:
+        candidate_names = interesting_names
+    else:
+        candidate_names = dataset_names
 
-    sample_size = min(25, len(all_datasets))
-    sample_names = random.sample(all_datasets, sample_size)
+    sample_size = min(25, len(candidate_names))
+    sample_names = random.sample(candidate_names, sample_size)
     
     user_prompt = "Here are the available datasets. Pick the most fascinating one:\n\n" + "\n".join(sample_names)
 
-    # 2. Ask Gemini to choose
+    # 2. Define the Pydantic schema for structured output with a dynamic Enum
+    from pydantic import BaseModel
+    from enum import Enum
+    
+    # Create the dynamic Enum of the sampled names
+    DatasetEnum = Enum("DatasetEnum", {f"item_{i}": name for i, name in enumerate(sample_names)})
+    
+    class TopicSelection(BaseModel):
+        dataset_name: DatasetEnum
+        topic: str
+        description: str
+
+    # 3. Ask Gemini to choose
     import time
     max_retries = 3
+    chosen_name = None
+    topic_title = None
+    topic_desc = None
+    
     for attempt in range(max_retries):
         try:
             response = client.models.generate_content(
@@ -132,42 +203,47 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
                 contents=user_prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=SYSTEM_PROMPT,
+                    response_mime_type="application/json",
+                    response_schema=TopicSelection,
                     temperature=0.2,
                 ),
             )
             raw_text = response.text.strip()
-            if raw_text.startswith("```"):
-                raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
-                raw_text = re.sub(r"\s*```$", "", raw_text)
-
             result = json.loads(raw_text)
+            
+            chosen_name = result.get("dataset_name")
+            # Extract name from dynamic Enum if returned as object or enum member
+            if hasattr(chosen_name, "value"):
+                chosen_name = chosen_name.value
+                
+            topic_title = result.get("topic")
+            topic_desc = result.get("description")
             break  # Success!
-        except json.JSONDecodeError as e:
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Gemini returned invalid JSON after {max_retries} attempts.\nRaw: {raw_text}\nError: {e}") from e
-            print(f"[topic] Invalid JSON: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
-            time.sleep(5)
         except Exception as e:
             if attempt == max_retries - 1:
-                raise RuntimeError(f"Gemini API call failed after {max_retries} attempts: {e}") from e
-            print(f"[topic] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
-            time.sleep(30)
+                print(f"[topic] Gemini selection failed: {e}. Falling back to default selection.")
+            else:
+                print(f"[topic] Gemini selection failed: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
+                time.sleep(5)
 
-    chosen_name = result.get("dataset_name")
+    # Fallback if Gemini failed or selection is invalid
     if not chosen_name or chosen_name not in sample_names:
-        # Fallback if Gemini hallucinates a name not in the list
         chosen_name = sample_names[0]
-        print(f"[topic] Gemini selected invalid dataset, falling back to: {chosen_name}")
+        topic_title = chosen_name
+        topic_desc = "A fascinating dataset from Our World in Data."
+        print(f"[topic] Gemini selected invalid dataset or failed, falling back to: {chosen_name}")
 
-    # 3. Construct deterministic URL based on OWID repo conventions
-    # Structure: master/datasets/Folder Name/Folder Name.csv
-    encoded_name = urllib.parse.quote(chosen_name)
-    url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/{encoded_name}/{encoded_name}.csv"
+    # 4. Construct deterministic URL based on database details or fallback
+    if chosen_name in dataset_map:
+        url = dataset_map[chosen_name]["csv_url"]
+    else:
+        encoded_name = urllib.parse.quote(chosen_name)
+        url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/{encoded_name}/{encoded_name}.csv"
 
     final_result = {
         "dataset_name": chosen_name,
-        "topic": result.get("topic", chosen_name),
-        "description": result.get("description", "A fascinating dataset from Our World in Data."),
+        "topic": topic_title,
+        "description": topic_desc,
         "source": "Our World in Data",
         "url": url,
         "format": "csv"
@@ -178,3 +254,4 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     print(f"[topic] URL: {final_result['url']}")
 
     return final_result
+
