@@ -6,7 +6,26 @@ Automatically handles 429 RESOURCE_EXHAUSTED errors with precise sleeps.
 
 import re
 import time
+import httpx
+from google import genai
+from google.genai import types
 from google.genai.errors import ClientError, APIError
+from pipeline.config import GEMINI_API_KEY
+
+
+def build_gemini_client() -> genai.Client:
+    """Build a Gemini API client with custom HTTP client to bypass SSL verification.
+
+    This avoids SSL: CERTIFICATE_VERIFY_FAILED errors caused by proxy routing.
+    """
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
+    httpx_client = httpx.Client(verify=False)
+    return genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=types.HttpOptions(httpx_client=httpx_client),
+    )
+
 
 
 def generate_content_with_retry(client, model: str, contents, config=None, max_retries: int = 5, initial_delay: float = 5.0):

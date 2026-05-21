@@ -132,10 +132,8 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     Returns:
         dict with keys: topic, description, source, url, format
     """
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    from pipeline.modules.gemini_helper import build_gemini_client
+    client = build_gemini_client()
 
     # 1. Try to load from database
     db_datasets = _get_valid_datasets_from_db()

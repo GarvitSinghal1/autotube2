@@ -98,7 +98,8 @@ def _gemini_tiebreak(
     if not GEMINI_API_KEY:
         return default
 
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    from pipeline.modules.gemini_helper import build_gemini_client
+    client = build_gemini_client()
 
     entities = list(df_yearly["entity"].unique()[:20])
     n_entities = df_yearly["entity"].nunique()

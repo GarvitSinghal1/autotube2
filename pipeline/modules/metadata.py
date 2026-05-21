@@ -27,10 +27,8 @@ def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
     Raises:
         RuntimeError: If Gemini fails to generate valid metadata.
     """
-    if not GEMINI_API_KEY:
-        raise RuntimeError("GEMINI_API_KEY environment variable is not set.")
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    from pipeline.modules.gemini_helper import build_gemini_client
+    client = build_gemini_client()
 
     prompt = f"""Generate YouTube video metadata for TWO videos about the same dataset.
 

@@ -216,9 +216,8 @@ def _gemini_detect_columns(
     Raises:
         RuntimeError: If Gemini can't determine column roles.
     """
-    import json
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    from pipeline.modules.gemini_helper import build_gemini_client
+    client = build_gemini_client()
 
     sample = df.head(5).to_string()
     columns = list(df.columns)
@@ -473,9 +472,8 @@ def _clean_all_entity_names_with_gemini(entities: list[str], topic_info: dict) -
         return {e: e for e in entities}
 
     import json
-    import time
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    from pipeline.modules.gemini_helper import build_gemini_client
+    client = build_gemini_client()
 
     prompt = f"""You are an expert data visualization editor.
 Your task is to take a list of raw entity or metric names from a dataset and translate them into clean, polished, human-readable, natural English labels suitable for display on a professional bar/line chart race.
@@ -530,9 +528,8 @@ def _gemini_detect_unit(df: pd.DataFrame, topic_info: dict) -> dict:
     Returns a dict with 'full_unit' and 'short_unit'.
     """
     import json
-    import time
-
-    client = genai.Client(api_key=GEMINI_API_KEY)
+    from pipeline.modules.gemini_helper import build_gemini_client
+    client = build_gemini_client()
 
     # Get a sample of the data and columns
     sample = df.head(5).to_string()
