@@ -114,7 +114,7 @@ def render_long_form(
     # Create figure once
     fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.15, 0.10, 0.80, 0.78])
+    ax = fig.add_axes([0.20, 0.12, 0.75, 0.74])
 
     frame_number = 0
 
@@ -126,7 +126,7 @@ def render_long_form(
     # Recreate axes after fig.clf() destroyed it in intro
     fig.clf()
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.15, 0.10, 0.80, 0.78])
+    ax = fig.add_axes([0.20, 0.12, 0.75, 0.74])
 
     # ── Chart animation ──────────────────────────────────────────────────
     # Track each entity's previous slot rank (for smooth y interpolation)
@@ -184,7 +184,7 @@ def render_long_form(
             date_label = interp_ts.strftime("%b %Y") if date_gap_days < 400 else str(interp_ts.year)
 
             _draw_chart_frame(ax, fig, entities_data, title, source, date_label,
-                              FRAMES_LONG_DIR, frame_number)
+                              FRAMES_LONG_DIR, frame_number, topic_info)
             frame_number += 1
 
         # After this step is done, update prev_ranks to the END state of the step
@@ -199,7 +199,7 @@ def render_long_form(
     hold_frames = FPS * 2
     for _ in range(hold_frames):
         _draw_chart_frame(ax, fig, entities_data, title, source, date_label,
-                          FRAMES_LONG_DIR, frame_number)
+                          FRAMES_LONG_DIR, frame_number, topic_info)
         frame_number += 1
 
     plt.close(fig)
@@ -223,16 +223,32 @@ def _ease(t: float) -> float:
     return t * t * (3 - 2 * t)
 
 
-def format_value(value: float) -> str:
-    """Format large numbers with K/M/B suffixes."""
+def format_value(value: float, short_unit: str = "") -> str:
+    """Format large numbers with K/M/B suffixes and optional unit."""
+    if not isinstance(short_unit, str):
+        short_unit = ""
     if value >= 1_000_000_000:
-        return f"{value / 1_000_000_000:.1f}B"
+        formatted = f"{value / 1_000_000_000:.1f}B"
     elif value >= 1_000_000:
-        return f"{value / 1_000_000:.1f}M"
+        formatted = f"{value / 1_000_000:.1f}M"
     elif value >= 1_000:
-        return f"{value / 1_000:.1f}K"
+        formatted = f"{value / 1_000:.1f}K"
     else:
-        return f"{value:.0f}"
+        if 0 < abs(value) < 10:
+            formatted = f"{value:.1f}"
+        else:
+            formatted = f"{value:.0f}"
+
+    if not short_unit:
+        return formatted
+
+    short_unit = short_unit.strip()
+    if short_unit == "%":
+        return f"{formatted}%"
+    elif short_unit in ("$", "£", "€"):
+        return f"{short_unit}{formatted}"
+    else:
+        return f"{formatted} {short_unit}"
 
 
 def _draw_intro_frame(
@@ -306,6 +322,7 @@ def _draw_chart_frame(
     date_label: str,
     frames_dir: Path,
     frame_number: int,
+    topic_info: Optional[dict] = None,
 ) -> None:
     """Draw a single chart frame and save to disk."""
     ax.cla()
@@ -335,6 +352,9 @@ def _draw_chart_frame(
     if max_value <= 0:
         max_value = 1.0
 
+    short_unit = topic_info.get("short_unit", "") if topic_info else ""
+    full_unit = topic_info.get("full_unit", "") if topic_info else ""
+
     for d in entities_data:
         norm_val = d["value"] / max_value
         y = d["y_pos"]
@@ -343,16 +363,22 @@ def _draw_chart_frame(
         # Bar
         ax.barh(y, norm_val, height=BAR_HEIGHT, color=color, alpha=0.9, left=0)
 
+        # Clean/truncate entity name to prevent cutting off
+        import re
+        clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", d["entity"]).strip()
+        if len(clean_name) > 26:
+            clean_name = clean_name[:23] + "..."
+
         # Entity name — LEFT of plot area (negative x in data coords)
         ax.text(
-            -0.01, y, d["entity"],
+            -0.01, y, clean_name,
             ha="right", va="center",
             color="white", fontsize=10, fontweight="bold",
         )
 
         # Value label — right end of bar
         ax.text(
-            norm_val + 0.01, y, format_value(d["value"]),
+            norm_val + 0.01, y, format_value(d["value"], short_unit),
             ha="left", va="center",
             color="white", fontsize=9,
         )
@@ -362,13 +388,15 @@ def _draw_chart_frame(
     ax.set_xticks(ticks)
     ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=8)
 
-    # Ghost year counter — figure-level, bottom right
+    # Ghost year counter — inside axes, bottom right, behind bars
     ax.text(
-        0.95, 0.08, date_label,
+        0.98, 0.05, date_label,
         ha="right", va="bottom",
-        color="white", alpha=0.15,
-        fontsize=52, fontweight="bold",
-        transform=fig.transFigure,
+        color="white",
+        alpha=0.20,
+        fontsize=140, fontweight="bold",
+        transform=ax.transAxes,
+        zorder=0,
     )
 
     # Title — figure-level, top left
@@ -379,10 +407,17 @@ def _draw_chart_frame(
         transform=fig.transFigure,
     )
 
-    # Source — below title
-    if source:
+    # Source / Unit text — below title
+    source_text = f"Source: {source}" if source else ""
+    if full_unit:
+        if source_text:
+            source_text += f" | Unit: {full_unit}"
+        else:
+            source_text = f"Unit: {full_unit}"
+
+    if source_text:
         ax.text(
-            0.02, 0.93, f"Source: {source}",
+            0.02, 0.93, source_text,
             ha="left", va="top",
             color="#888888", fontsize=9, style="italic",
             transform=fig.transFigure,

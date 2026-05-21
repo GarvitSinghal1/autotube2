@@ -490,5 +490,98 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-19T14:58:05.069746+00:00",
+    "topic": "The Nuclear Club: A Race for Global Power (1945-Today)",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20proliferation%20total%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29/Nuclear%20weapons%20proliferation%20total%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29.csv",
+    "chart_type": "line_chart_race",
+    "extreme_segment": {
+      "start_year": 1947,
+      "end_year": 1967
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-19T15:02:09.540404+00:00",
+    "topic": "What the World Drank: A Century of Alcohol Trends",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Alcohol%20consumption%20by%20type%20since%201890%20%28Alexander%20%26%20Holmes%2C%202017%29/Alcohol%20consumption%20by%20type%20since%201890%20%28Alexander%20%26%20Holmes%2C%202017%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1928,
+      "end_year": 1948
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
+  },
+  {
+    "timestamp": "2026-05-19T15:08:59.844426+00:00",
+    "topic": null,
+    "dataset_url": null,
+    "chart_type": null,
+    "extreme_segment": null,
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pending",
+      "fetcher": "pending",
+      "cleaner": "pending",
+      "analyzer": "pending",
+      "chart_selector": "pending",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-20T11:45:40.543753+00:00",
+    "topic": "The Race to Armageddon: Every Nuclear Weapons Test in History",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20tests%20%E2%80%93%20Arms%20Control%20Association%20%282020%29/Nuclear%20weapons%20tests%20%E2%80%93%20Arms%20Control%20Association%20%282020%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1945,
+      "end_year": 1962
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_client: The OAuth client was not found.', {'error': 'invalid_client', 'error_description': 'The OAuth client was not found.'})"
   }
 ]

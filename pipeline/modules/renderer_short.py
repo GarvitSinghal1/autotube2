@@ -103,7 +103,7 @@ def render_short(
     # Create figure once
     fig = plt.figure(figsize=(10.8, 19.2), dpi=100)
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.20, 0.08, 0.75, 0.78])
+    ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
 
     frame_number = 0
 
@@ -115,7 +115,7 @@ def render_short(
     # Recreate axes after fig.clf() destroyed it in intro
     fig.clf()
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.20, 0.08, 0.75, 0.78])
+    ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
 
     # ── Chart animation ──────────────────────────────────────────────────
     prev_ranks: dict[str, int] = {}
@@ -161,7 +161,7 @@ def render_short(
             date_label = str(interp_ts.year)
 
             _draw_short_chart_frame(ax, fig, entities_data, title, source, date_label,
-                                    FRAMES_SHORT_DIR, frame_number)
+                                    FRAMES_SHORT_DIR, frame_number, topic_info)
             frame_number += 1
 
         # Update prev_ranks to end state of this step
@@ -172,7 +172,7 @@ def render_short(
     # Hold last frame for 2 seconds
     for _ in range(FPS * 2):
         _draw_short_chart_frame(ax, fig, entities_data, title, source, date_label,
-                                FRAMES_SHORT_DIR, frame_number)
+                                FRAMES_SHORT_DIR, frame_number, topic_info)
         frame_number += 1
 
     plt.close(fig)
@@ -194,6 +194,7 @@ def _draw_short_chart_frame(
     date_label: str,
     frames_dir: Path,
     frame_number: int,
+    topic_info: Optional[dict] = None,
 ) -> None:
     """Draw a single vertical-format chart frame and save to disk."""
     ax.cla()
@@ -222,6 +223,9 @@ def _draw_short_chart_frame(
     if max_value <= 0:
         max_value = 1.0
 
+    short_unit = topic_info.get("short_unit", "") if topic_info else ""
+    full_unit = topic_info.get("full_unit", "") if topic_info else ""
+
     for d in entities_data:
         norm_val = d["value"] / max_value
         y = d["y_pos"]
@@ -229,16 +233,22 @@ def _draw_short_chart_frame(
 
         ax.barh(y, norm_val, height=BAR_HEIGHT, color=color, alpha=0.9, left=0)
 
+        # Clean/truncate entity name to prevent cutting off
+        import re
+        clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", d["entity"]).strip()
+        if len(clean_name) > 22:
+            clean_name = clean_name[:19] + "..."
+
         # Entity name — left margin
         ax.text(
-            -0.01, y, d["entity"],
+            -0.01, y, clean_name,
             ha="right", va="center",
             color="white", fontsize=9, fontweight="bold",
         )
 
         # Value label — right end of bar
         ax.text(
-            norm_val + 0.01, y, format_value(d["value"]),
+            norm_val + 0.01, y, format_value(d["value"], short_unit),
             ha="left", va="center",
             color="white", fontsize=8,
         )
@@ -248,13 +258,15 @@ def _draw_short_chart_frame(
     ax.set_xticks(ticks)
     ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=7)
 
-    # Ghost year — figure-level, bottom right, large and transparent
+    # Ghost year — inside axes, bottom right, behind bars
     ax.text(
-        0.95, 0.05, date_label,
+        0.98, 0.05, date_label,
         ha="right", va="bottom",
-        color="white", alpha=0.15,
-        fontsize=80, fontweight="bold",
-        transform=fig.transFigure,
+        color="white",
+        alpha=0.20,
+        fontsize=120, fontweight="bold",
+        transform=ax.transAxes,
+        zorder=0,
     )
 
     # Title — figure-level, top
@@ -265,9 +277,17 @@ def _draw_short_chart_frame(
         transform=fig.transFigure,
     )
 
-    if source:
+    # Source / Unit text — below title
+    source_text = f"Source: {source}" if source else ""
+    if full_unit:
+        if source_text:
+            source_text += f" | Unit: {full_unit}"
+        else:
+            source_text = f"Unit: {full_unit}"
+
+    if source_text:
         ax.text(
-            0.5, 0.93, f"Source: {source}",
+            0.5, 0.93, source_text,
             ha="center", va="top",
             color="#888888", fontsize=8, style="italic",
             transform=fig.transFigure,

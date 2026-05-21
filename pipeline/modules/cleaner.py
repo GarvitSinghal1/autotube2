@@ -110,6 +110,17 @@ def clean_dataframe(
     # --- Step 6: Normalize entity names ---
     df_clean["entity"] = df_clean["entity"].apply(_normalize_entity)
 
+    # Clean cryptic entity names using Gemini mapping
+    unique_entities = list(df_clean["entity"].unique())
+    entity_mapping = _clean_all_entity_names_with_gemini(unique_entities, topic_info)
+    df_clean["entity"] = df_clean["entity"].map(entity_mapping)
+
+    # Detect dataset units using Gemini
+    unit_info = _gemini_detect_unit(df, topic_info)
+    topic_info["full_unit"] = unit_info.get("full_unit", "")
+    topic_info["short_unit"] = unit_info.get("short_unit", "")
+    print(f"[cleaner] Detected units: full='{topic_info['full_unit']}', short='{topic_info['short_unit']}'")
+
     # Remove entities that are aggregates (e.g. "World", "Global")
     aggregate_names = {
         "world", "global", "total", "all", "aggregate", "sum",
@@ -446,3 +457,132 @@ def _build_monthly(df: pd.DataFrame, df_yearly: pd.DataFrame) -> pd.DataFrame:
         monthly = pd.DataFrame(columns=["date", "entity", "value"])
 
     return monthly[["date", "entity", "value"]]
+
+
+def _clean_all_entity_names_with_gemini(entities: list[str], topic_info: dict) -> dict[str, str]:
+    """Uses Gemini to clean up a list of raw entity/metric names into natural, human-readable titles."""
+    if not entities:
+        return {}
+
+    needs_cleaning = False
+    for name in entities:
+        if "_" in name or name.islower() or "number_" in name.lower() or name.replace(" ", "").isalnum() == False:
+            needs_cleaning = True
+            break
+
+    if not needs_cleaning:
+        return {e: e for e in entities}
+
+    import json
+    import time
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    prompt = f"""You are an expert data visualization editor.
+Your task is to take a list of raw entity or metric names from a dataset and translate them into clean, polished, human-readable, natural English labels suitable for display on a professional bar/line chart race.
+
+Topic: {topic_info.get('topic', 'Data Visualization')}
+Description: {topic_info.get('description', '')}
+
+Rules:
+1. Translate cryptic column/variable names (e.g., "number_nuclweap_possession" -> "Possession", or "number_nuclweap_pursuit" -> "Pursuit", or "gdp_per_capita" -> "GDP per Capita") into elegant, concise labels.
+2. If the entity names are already clean names (like country names), leave them exactly as they are.
+3. Keep the output labels short and concise so they don't get cut off on the chart.
+4. Return ONLY a JSON dictionary where the keys are the raw strings and the values are the cleaned, human-readable names. Do not return markdown, codeblocks, or any other text.
+
+List of raw names to clean:
+{json.dumps(entities, indent=2)}
+"""
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                )
+            )
+            mapping = json.loads(response.text.strip())
+            if isinstance(mapping, dict):
+                return {e: mapping.get(e, e) for e in entities}
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"[cleaner] Failed to clean entity names with Gemini: {e}")
+                # Fallback to a basic string replacement
+                fallback_mapping = {}
+                for e in entities:
+                    clean = e.replace("_", " ").strip()
+                    if clean.lower().startswith("number "):
+                        clean = clean[7:]
+                    clean = re.sub(r"\bnuclweap\b", "nuclear weapons", clean, flags=re.IGNORECASE)
+                    fallback_mapping[e] = clean.title()
+                    print(f"[cleaner] Fallback mapping: {e} -> {fallback_mapping[e]}")
+                return fallback_mapping
+            print(f"[cleaner] API error cleaning entity names: {e}. Waiting 5s (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(5)
+
+    return {e: e for e in entities}
+
+
+def _gemini_detect_unit(df: pd.DataFrame, topic_info: dict) -> dict:
+    """Ask Gemini to determine the unit of measurement for this dataset.
+
+    Returns a dict with 'full_unit' and 'short_unit'.
+    """
+    import json
+    import time
+
+    client = genai.Client(api_key=GEMINI_API_KEY)
+
+    # Get a sample of the data and columns
+    sample = df.head(5).to_string()
+    columns = list(df.columns)
+
+    prompt = f"""You are a data analyst.
+We have a dataset that we are preparing for a visualization.
+Your task is to identify the unit of measurement for the numeric values in this dataset.
+
+Topic: {topic_info.get('topic', '')}
+Description: {topic_info.get('description', '')}
+Dataset Name: {topic_info.get('dataset_name', '')}
+
+Columns: {columns}
+Sample Data:
+{sample}
+
+Rules:
+1. Identify the unit of measurement of the primary value/metric in the dataset (e.g., 'liters', 'liters per capita', 'USD', 'percentage', 'tons', 'deaths', 'people', 'kW', etc.).
+2. Return a JSON object with two fields:
+   - "full_unit": the complete, formal unit name (e.g., "liters of pure alcohol per capita", "number of nuclear weapons", "metric tons per capita")
+   - "short_unit": a very short version (1 word or abbreviation/symbol, e.g., "liters", "weapons", "tons", "%", "$") to display next to numbers.
+3. Do not explain anything. Return ONLY a valid JSON object.
+"""
+
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    temperature=0.1,
+                )
+            )
+            res = json.loads(response.text.strip())
+            if isinstance(res, dict):
+                full_unit = res.get("full_unit", "").strip()
+                short_unit = res.get("short_unit", "").strip()
+                return {"full_unit": full_unit, "short_unit": short_unit}
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"[cleaner] Failed to detect unit with Gemini: {e}")
+                # Fallback to empty units
+                return {"full_unit": "", "short_unit": ""}
+            print(f"[cleaner] API error detecting unit: {e}. Waiting 5s (Attempt {attempt+1}/{max_retries})...")
+            time.sleep(5)
+
+    return {"full_unit": "", "short_unit": ""}

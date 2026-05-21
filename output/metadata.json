@@ -1,38 +1,39 @@
 {
   "long_form": {
-    "title": "The Rise and Fall of Airline Hijackings: A Global History (1960-2023)",
-    "description": "Explore the full global history of airline hijackings from 1960 to 2023. This data visualization reveals how this terrifying trend emerged, surged dramatically during periods of global conflict and political unrest, and then significantly declined due to enhanced security measures. We also highlight a critical segment from 1989 to 2001, where fatalities from hijackings tragically increased by 26700%. Data: Our World in Data.",
+    "title": "The Global Race to Armageddon: Every Nuclear Weapons Test (1945-Present)",
+    "description": "Witness the complete, terrifying history of nuclear weapons tests across the globe, from the very first detonation to the present day. This visualization reveals the shocking escalation and the critical moments that shaped our world, highlighting the chilling race between nations for atomic power. Explore how countries like the United States, Russia, and the United Kingdom rapidly developed their arsenals, fundamentally altering the geopolitical landscape. Data sourced from Our World in Data.",
     "tags": [
-      "airline hijacking history",
-      "aviation safety",
-      "global security",
+      "nuclear weapons",
+      "nuclear tests",
+      "atomic bombs",
+      "cold war",
+      "nuclear history",
+      "arms race",
+      "global conflict",
+      "nuclear proliferation",
+      "our world in data",
+      "historical data",
       "data visualization",
-      "Our World in Data",
-      "terrorism history",
-      "plane security",
-      "historical trends",
-      "aviation history",
-      "hijacking statistics",
-      "security changes",
-      "fatalities",
-      "air travel history",
-      "political terrorism"
+      "world history",
+      "nuclear war",
+      "US nuclear tests",
+      "Russia nuclear tests"
     ]
   },
   "short": {
-    "title": "Airline Hijacking Fatalities Exploded 26700% (1989-2001) #Shorts",
-    "description": "Witness the shocking 26700% surge in airline hijacking fatalities between 1989 and 2001. This short video highlights the most extreme period in the history of airline hijackings, revealing a terrifying escalation.",
+    "title": "Nobody Saw Russia's Nuclear Rise Coming (1945-1962) #Shorts",
+    "description": "In just 17 years, from 1945 to 1962, the world witnessed an unprecedented surge in nuclear weapons tests. See how Russia skyrocketed from #7 to #2, the UK from #8 to #3, and the US grew by 9500% in this chilling arms race.",
     "tags": [
-      "airline hijacking",
-      "aviation safety",
-      "terrorism",
-      "9/11",
-      "data facts",
-      "historical facts",
-      "plane safety",
-      "shocking statistics",
-      "shorts",
-      "security crisis"
+      "nuclear shorts",
+      "nuclear weapons",
+      "cold war history",
+      "russia nuclear",
+      "us nuclear",
+      "uk nuclear",
+      "arms race",
+      "nuclear tests",
+      "historical shorts",
+      "data shorts"
     ]
   }
 }
