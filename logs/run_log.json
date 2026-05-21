@@ -631,5 +631,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
+  },
+  {
+    "timestamp": "2026-05-21T11:30:19.990255+00:00",
+    "topic": "What Kills Us vs. What the News Covers: A Shocking Disconnect",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Causes%20of%20death%20vs.%20media%20coverage%20%28Shen%20et%20al.%202018%29/Causes%20of%20death%20vs.%20media%20coverage%20%28Shen%20et%20al.%202018%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1999,
+      "end_year": 2016
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/aEBeqq3JNww",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]

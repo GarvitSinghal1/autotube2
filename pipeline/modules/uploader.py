@@ -54,11 +54,6 @@ def upload_both_videos(
 
     youtube = _build_youtube_client()
 
-    # Schedule times: next day
-    tomorrow = datetime.now(timezone.utc) + timedelta(days=1)
-    long_publish = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0)
-    short_publish = tomorrow.replace(hour=12, minute=0, second=0, microsecond=0)
-
     # Upload long form if provided
     long_url = None
     if long_form_path:
@@ -70,7 +65,6 @@ def upload_both_videos(
             description=metadata["long_form"]["description"],
             tags=metadata["long_form"]["tags"],
             category_id=CATEGORY_EDUCATION,
-            publish_at=long_publish,
             is_short=False,
         )
     else:
@@ -85,7 +79,6 @@ def upload_both_videos(
         description=metadata["short"]["description"],
         tags=metadata["short"]["tags"],
         category_id=CATEGORY_EDUCATION,
-        publish_at=short_publish,
         is_short=True,
     )
 
@@ -124,7 +117,6 @@ def _upload_video(
     description: str,
     tags: list[str],
     category_id: str,
-    publish_at: datetime,
     is_short: bool,
 ) -> str:
     """Upload a single video to YouTube.
@@ -136,7 +128,6 @@ def _upload_video(
         description: Video description.
         tags: List of tag strings.
         category_id: YouTube category ID.
-        publish_at: Scheduled publish datetime (UTC).
         is_short: Whether this is a Short.
 
     Returns:
@@ -153,8 +144,7 @@ def _upload_video(
             "categoryId": category_id,
         },
         "status": {
-            "privacyStatus": "private",  # Will become public at publish_at
-            "publishAt": publish_at.isoformat(),
+            "privacyStatus": "public",  # Make the video public immediately upon upload
             "selfDeclaredMadeForKids": False,
         },
     }
