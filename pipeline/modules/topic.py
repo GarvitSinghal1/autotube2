@@ -190,41 +190,36 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         description: str
 
     # 3. Ask Gemini to choose
-    import time
-    max_retries = 3
+    from pipeline.modules.gemini_helper import generate_content_with_retry
     chosen_name = None
     topic_title = None
     topic_desc = None
     
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=user_prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=SYSTEM_PROMPT,
-                    response_mime_type="application/json",
-                    response_schema=TopicSelection,
-                    temperature=0.2,
-                ),
-            )
-            raw_text = response.text.strip()
-            result = json.loads(raw_text)
+    try:
+        response = generate_content_with_retry(
+            client=client,
+            model=GEMINI_MODEL,
+            contents=user_prompt,
+            config=types.GenerateContentConfig(
+                system_instruction=SYSTEM_PROMPT,
+                response_mime_type="application/json",
+                response_schema=TopicSelection,
+                temperature=0.2,
+            ),
+        )
+        raw_text = response.text.strip()
+        result = json.loads(raw_text)
+        
+        chosen_name = result.get("dataset_name")
+        # Extract name from dynamic Enum if returned as object or enum member
+        if hasattr(chosen_name, "value"):
+            chosen_name = chosen_name.value
             
-            chosen_name = result.get("dataset_name")
-            # Extract name from dynamic Enum if returned as object or enum member
-            if hasattr(chosen_name, "value"):
-                chosen_name = chosen_name.value
-                
-            topic_title = result.get("topic")
-            topic_desc = result.get("description")
-            break  # Success!
-        except Exception as e:
-            if attempt == max_retries - 1:
-                print(f"[topic] Gemini selection failed: {e}. Falling back to default selection.")
-            else:
-                print(f"[topic] Gemini selection failed: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
-                time.sleep(5)
+        topic_title = result.get("topic")
+        topic_desc = result.get("description")
+    except Exception as e:
+        print(f"[topic] Gemini selection failed: {e}. Falling back to default selection.")
+
 
     # Fallback if Gemini failed or selection is invalid
     if not chosen_name or chosen_name not in sample_names:

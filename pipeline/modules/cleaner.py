@@ -244,11 +244,12 @@ Return ONLY a JSON object:
 {{"date_col": "column_name", "entity_col": "column_name", "value_col": "column_name"}}
 """
 
-    import time
-    max_retries = 3
-    for attempt in range(max_retries):
+    from pipeline.modules.gemini_helper import generate_content_with_retry
+    max_json_retries = 3
+    for attempt in range(max_json_retries):
         try:
-            response = client.models.generate_content(
+            response = generate_content_with_retry(
+                client=client,
                 model=GEMINI_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -263,15 +264,13 @@ Return ONLY a JSON object:
             result = json.loads(raw)
             return result.get("date_col"), result.get("entity_col"), result.get("value_col")
         except json.JSONDecodeError as e:
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Gemini column detection invalid JSON after {max_retries} attempts: {e}") from e
-            print(f"[cleaner] Invalid JSON: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
+            if attempt == max_json_retries - 1:
+                raise RuntimeError(f"Gemini column detection invalid JSON after {max_json_retries} attempts: {e}") from e
+            print(f"[cleaner] Invalid JSON: {e}. Retrying JSON generation (Attempt {attempt+1}/{max_json_retries})...")
             time.sleep(5)
         except Exception as e:
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Gemini column detection failed after {max_retries} attempts: {e}") from e
-            print(f"[cleaner] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
-            time.sleep(30)
+            raise RuntimeError(f"Gemini column detection failed: {e}") from e
+
 
 
 def _melt_wide_format(
@@ -494,35 +493,33 @@ List of raw names to clean:
 {json.dumps(entities, indent=2)}
 """
 
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.1,
-                )
+    from pipeline.modules.gemini_helper import generate_content_with_retry
+    try:
+        response = generate_content_with_retry(
+            client=client,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1,
             )
-            mapping = json.loads(response.text.strip())
-            if isinstance(mapping, dict):
-                return {e: mapping.get(e, e) for e in entities}
-        except Exception as e:
-            if attempt == max_retries - 1:
-                print(f"[cleaner] Failed to clean entity names with Gemini: {e}")
-                # Fallback to a basic string replacement
-                fallback_mapping = {}
-                for e in entities:
-                    clean = e.replace("_", " ").strip()
-                    if clean.lower().startswith("number "):
-                        clean = clean[7:]
-                    clean = re.sub(r"\bnuclweap\b", "nuclear weapons", clean, flags=re.IGNORECASE)
-                    fallback_mapping[e] = clean.title()
-                    print(f"[cleaner] Fallback mapping: {e} -> {fallback_mapping[e]}")
-                return fallback_mapping
-            print(f"[cleaner] API error cleaning entity names: {e}. Waiting 5s (Attempt {attempt+1}/{max_retries})...")
-            time.sleep(5)
+        )
+        mapping = json.loads(response.text.strip())
+        if isinstance(mapping, dict):
+            return {e: mapping.get(e, e) for e in entities}
+    except Exception as e:
+        print(f"[cleaner] Failed to clean entity names with Gemini: {e}")
+        # Fallback to a basic string replacement
+        fallback_mapping = {}
+        for e in entities:
+            clean = e.replace("_", " ").strip()
+            if clean.lower().startswith("number "):
+                clean = clean[7:]
+            clean = re.sub(r"\bnuclweap\b", "nuclear weapons", clean, flags=re.IGNORECASE)
+            fallback_mapping[e] = clean.title()
+            print(f"[cleaner] Fallback mapping: {e} -> {fallback_mapping[e]}")
+        return fallback_mapping
+
 
     return {e: e for e in entities}
 
@@ -561,28 +558,26 @@ Rules:
 3. Do not explain anything. Return ONLY a valid JSON object.
 """
 
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            response = client.models.generate_content(
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.1,
-                )
+    from pipeline.modules.gemini_helper import generate_content_with_retry
+    try:
+        response = generate_content_with_retry(
+            client=client,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.1,
             )
-            res = json.loads(response.text.strip())
-            if isinstance(res, dict):
-                full_unit = res.get("full_unit", "").strip()
-                short_unit = res.get("short_unit", "").strip()
-                return {"full_unit": full_unit, "short_unit": short_unit}
-        except Exception as e:
-            if attempt == max_retries - 1:
-                print(f"[cleaner] Failed to detect unit with Gemini: {e}")
-                # Fallback to empty units
-                return {"full_unit": "", "short_unit": ""}
-            print(f"[cleaner] API error detecting unit: {e}. Waiting 5s (Attempt {attempt+1}/{max_retries})...")
-            time.sleep(5)
+        )
+        res = json.loads(response.text.strip())
+        if isinstance(res, dict):
+            full_unit = res.get("full_unit", "").strip()
+            short_unit = res.get("short_unit", "").strip()
+            return {"full_unit": full_unit, "short_unit": short_unit}
+    except Exception as e:
+        print(f"[cleaner] Failed to detect unit with Gemini: {e}")
+        # Fallback to empty units
+        return {"full_unit": "", "short_unit": ""}
 
     return {"full_unit": "", "short_unit": ""}
+

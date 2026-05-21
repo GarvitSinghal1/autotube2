@@ -67,11 +67,12 @@ Return ONLY valid JSON:
 }}
 """
 
-    import time
-    max_retries = 3
-    for attempt in range(max_retries):
+    from pipeline.modules.gemini_helper import generate_content_with_retry
+    max_json_retries = 3
+    for attempt in range(max_json_retries):
         try:
-            response = client.models.generate_content(
+            response = generate_content_with_retry(
+                client=client,
                 model=GEMINI_MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
@@ -86,15 +87,13 @@ Return ONLY valid JSON:
             result = json.loads(raw)
             break  # Success!
         except json.JSONDecodeError as e:
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Invalid JSON from Gemini after {max_retries} attempts.\nRaw: {raw}\nError: {e}") from e
-            print(f"[metadata] Invalid JSON: {e}. Retrying (Attempt {attempt+1}/{max_retries})...")
+            if attempt == max_json_retries - 1:
+                raise RuntimeError(f"Invalid JSON from Gemini after {max_json_retries} attempts.\nRaw: {raw}\nError: {e}") from e
+            print(f"[metadata] Invalid JSON: {e}. Retrying JSON generation (Attempt {attempt+1}/{max_json_retries})...")
             time.sleep(5)
         except Exception as e:
-            if attempt == max_retries - 1:
-                raise RuntimeError(f"Gemini metadata generation failed after {max_retries} attempts: {e}") from e
-            print(f"[metadata] API error or rate limit: {e}. Waiting 30s (Attempt {attempt+1}/{max_retries})...")
-            time.sleep(30)
+            raise RuntimeError(f"Gemini metadata generation failed: {e}") from e
+
 
     # Validate structure
     for key in ("long_form", "short"):
