@@ -61,10 +61,10 @@ def run_test():
     
     print("[*] Running render_short...")
     output_path, colors = render_short(
-        df_data=df_data,
-        chart_type="bar_chart_race",
-        topic_info=topic_info,
-        extreme_segment=extreme_segment
+        df_data,
+        "bar_chart_race",
+        topic_info,
+        extreme_segment
     )
     print(f"[+] Test complete! Video rendered to: {output_path}")
 
