@@ -1,39 +1,40 @@
 {
   "long_form": {
-    "title": "Global Causes of Death vs. News Coverage: A Shocking Disconnect (1990-2019)",
-    "description": "This video dramatically reveals the vast difference between the actual leading causes of death globally and the amount of attention they receive in the news. Explore a full dataset visualization to uncover surprising biases in public perception and media priorities, highlighting long-term trends and overlooked health crises. Discover what truly kills us versus what dominates headlines.\nData source: Our World in Data",
+    "title": "The Evolving Geography of Terror: Global Attack Targets 1970-2022",
+    "description": "Explore the comprehensive evolution of global terrorism targets from 1970 to 2022. This video visualizes how the focus of terrorist attacks dramatically shifted across regions and over decades, revealing changing vulnerabilities, tactics, and geopolitical landscapes. Understand the long-term trends and surprising transformations in global security. Data source: Our World in Data.",
     "tags": [
-      "causes of death",
-      "global health",
-      "mortality rates",
-      "news bias",
-      "media coverage",
-      "public perception",
-      "Our World in Data",
+      "terrorism",
+      "global terrorism",
+      "terrorist attacks",
       "data visualization",
-      "health trends",
-      "epidemiology",
-      "health statistics",
-      "global issues",
-      "disease awareness",
-      "health disparities",
-      "long-form video"
+      "geopolitical",
+      "security",
+      "evolving threats",
+      "historical data",
+      "Our World in Data",
+      "global security",
+      "conflict",
+      "violence",
+      "regional analysis",
+      "world history",
+      "data story"
     ]
   },
   "short": {
-    "title": "Nobody Saw This Coming: Alzheimer's & Overdoses Explode (1999-2016) #Shorts",
-    "description": "In just 17 years (1999-2016), Alzheimer's Disease jumped from #8 to #5, and drug overdose deaths surged by 344%. This short reveals the shocking rise of these silent killers that the news largely missed.",
+    "title": "North America Went From #100 to #1 in Terror Targets (1976-1995) #Shorts",
+    "description": "Witness the astonishing shift in global terrorism targets between 1976 and 1995, as North America skyrocketed from #100 to #1. This 60-second short highlights the dramatic period when countries like the Central African Republic, Swaziland, and Seychelles also unexpectedly entered the top 10 most targeted regions.",
     "tags": [
-      "Alzheimer's",
-      "drug overdose",
-      "mortality trends",
-      "health crisis",
-      "shocking stats",
-      "data shorts",
-      "Our World in Data",
-      "public health",
-      "news disconnect",
-      "short video"
+      "terrorism",
+      "North America",
+      "global terrorism",
+      "historical data",
+      "data visualization",
+      "security",
+      "geopolitical",
+      "surprising stats",
+      "world events",
+      "terrorist attacks",
+      "#Shorts"
     ]
   }
 }

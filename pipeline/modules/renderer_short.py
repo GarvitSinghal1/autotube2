@@ -17,6 +17,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
+from matplotlib.patches import FancyBboxPatch
 import numpy as np
 import pandas as pd
 
@@ -67,6 +68,39 @@ def _get_font_properties(bold: bool = False) -> FontProperties:
         return FontProperties(family="sans-serif", weight="bold" if bold else "normal")
 
 
+def _detect_overtakes(v0: dict[str, float], v1: dict[str, float], top_n: int = 5) -> float:
+    """Calculate an activity score based on swaps in the top_n and new entries in the top 3."""
+    sorted_0 = sorted(v0.keys(), key=lambda e: v0[e], reverse=True)
+    sorted_1 = sorted(v1.keys(), key=lambda e: v1[e], reverse=True)
+    
+    rank_0 = {e: r for r, e in enumerate(sorted_0)}
+    rank_1 = {e: r for r, e in enumerate(sorted_1)}
+    
+    weight = 1.0
+    
+    # Check top 5 swaps
+    top_entities = set(sorted_0[:top_n]) | set(sorted_1[:top_n])
+    top_list = list(top_entities)
+    for i in range(len(top_list)):
+        for j in range(i + 1, len(top_list)):
+            e1, e2 = top_list[i], top_list[j]
+            r0_1 = rank_0.get(e1, 999)
+            r0_2 = rank_0.get(e2, 999)
+            r1_1 = rank_1.get(e1, 999)
+            r1_2 = rank_1.get(e2, 999)
+            
+            if (r0_1 < r0_2) != (r1_1 < r1_2):
+                weight += 0.8
+                
+    # Check new entries in top 3
+    top3_0 = set(sorted_0[:3])
+    top3_1 = set(sorted_1[:3])
+    new_top3 = top3_1 - top3_0
+    weight += len(new_top3) * 1.5
+    
+    return weight
+
+
 def render_short(
     df_data: pd.DataFrame,
     chart_type: str,
@@ -74,7 +108,7 @@ def render_short(
     extreme_segment: dict,
     entity_colors: Optional[dict] = None,
 ) -> tuple[Path, dict[str, str]]:
-    """Render the YouTube Short video from the extreme segment.
+    """Render the YouTube Short video from the extreme segment with dynamic pacing.
 
     Args:
         df_data: Monthly or Yearly DataFrame with columns [date, entity, value].
@@ -92,6 +126,10 @@ def render_short(
     end_yr   = extreme_segment["end_year"]
     print(f"[renderer_short] Rendering Short: {start_yr}–{end_yr}")
 
+    import shutil
+    if FRAMES_SHORT_DIR.exists():
+        print(f"[renderer_short] Cleaning up existing frames in {FRAMES_SHORT_DIR}...")
+        shutil.rmtree(FRAMES_SHORT_DIR, ignore_errors=True)
     FRAMES_SHORT_DIR.mkdir(parents=True, exist_ok=True)
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -126,25 +164,46 @@ def render_short(
     short_intro_frames = 60  # 2 seconds intro
     hold_frames = FPS * 2    # 2 seconds hold at the end
 
-    # Calculate frames per step to hit target duration (min 20s, max 35s)
-    usable_frames = SHORT_MIN_DURATION * FPS - short_intro_frames
-    frames_per_step = max(SHORT_FRAMES_PER_STEP, usable_frames // max(n_steps - 1, 1))
-    
-    max_frames = SHORT_MAX_DURATION * FPS - short_intro_frames
-    frames_per_step = min(frames_per_step, max_frames // max(n_steps - 1, 1))
-    frames_per_step = max(frames_per_step, 4)
+    # Calculate dynamic variable pacing based on activity weights
+    weights = []
+    for step_idx in range(n_steps - 1):
+        w = _detect_overtakes(step_values[step_idx], step_values[step_idx + 1])
+        weights.append(w)
 
-    total_frames = short_intro_frames + (n_steps - 1) * frames_per_step + hold_frames
+    sum_w = sum(weights) if weights else 1.0
+
+    # Define targets for animation frames
+    min_anim_frames = SHORT_MIN_DURATION * FPS - short_intro_frames - hold_frames  # 20s - 2s - 2s = 480 frames
+    max_anim_frames = SHORT_MAX_DURATION * FPS - short_intro_frames - hold_frames  # 35s - 2s - 2s = 930 frames
+    target_anim_frames = 600  # Default target around 20 seconds of animation
+
+    # Distribute target frames proportionally
+    step_frames = []
+    for w in weights:
+        f = int(round((w / sum_w) * target_anim_frames))
+        f = max(3, min(24, f))  # Clamp step allocations to preserve fluidity
+        step_frames.append(f)
+
+    # Scale step frames if the total sum is outside allowed duration bounds
+    total_anim = sum(step_frames)
+    if total_anim < min_anim_frames:
+        scale = min_anim_frames / total_anim
+        step_frames = [max(3, min(24, int(round(f * scale)))) for f in step_frames]
+    elif total_anim > max_anim_frames:
+        scale = max_anim_frames / total_anim
+        step_frames = [max(3, min(24, int(round(f * scale)))) for f in step_frames]
+
+    total_frames = short_intro_frames + sum(step_frames) + hold_frames
     est_duration = total_frames / FPS
-    print(f"[renderer_short] Frames/step: {frames_per_step}, Total Frames: {total_frames}, Duration: {est_duration:.1f}s")
+    print(f"[renderer_short] Dynamic Pacing -> Total Animation Frames: {sum(step_frames)}, Total Video Frames: {total_frames}, Duration: {est_duration:.1f}s")
 
     title = topic_info.get("topic", "Data Visualization")
     source = topic_info.get("source", "")
     hook = extreme_segment.get("hook", title)
 
-    # Create figure once
+    # Create figure once with obsidian background color
     fig = plt.figure(figsize=(10.8, 19.2), dpi=100)
-    fig.patch.set_facecolor("#000000")
+    fig.patch.set_facecolor("#06050a")
     ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
 
     frame_number = 0
@@ -165,26 +224,28 @@ def render_short(
             "is_climbing": False,
         })
 
+    # Calculate date labels
+    date_gap_days = (df_seg["date"].max() - df_seg["date"].min()).days
+    first_ts = pd.Timestamp(time_steps[0])
+    first_date_label = first_ts.strftime("%b %Y") if date_gap_days < 4000 else str(first_ts.year)
+
     # ── Intro ────────────────────────────────────────────────────────────
     for f in range(short_intro_frames):
         _draw_short_intro_frame(
             fig, hook, title, f, short_intro_frames, FRAMES_SHORT_DIR, frame_number,
-            initial_entities_data, topic_info
+            initial_entities_data, topic_info, first_date_label
         )
         frame_number += 1
 
     # Recreate axes after fig.clf() in intro
     fig.clf()
-    fig.patch.set_facecolor("#000000")
+    fig.patch.set_facecolor("#06050a")
     ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
-
-    # Calculate total span in days to determine date formatting (month/year vs year-only)
-    date_gap_days = (df_seg["date"].max() - df_seg["date"].min()).days
 
     # ── Chart animation ──────────────────────────────────────────────────
     prev_ranks: dict[str, int] = {}
     entities_data = []
-    date_label = str(start_yr)
+    date_label = first_date_label
 
     # Initialize prev_ranks for step 0
     prev_ranks = {e: r for r, e in enumerate(
@@ -199,9 +260,10 @@ def render_short(
 
         ts_start = pd.Timestamp(time_steps[step_idx])
         ts_end   = pd.Timestamp(time_steps[step_idx + 1])
+        f_step = step_frames[step_idx]
 
-        for interp_frame in range(frames_per_step):
-            alpha = _ease(interp_frame / frames_per_step)
+        for interp_frame in range(f_step):
+            alpha = _ease(interp_frame / f_step)
 
             interp_vals: dict[str, float] = {}
             for entity in all_shown:
@@ -280,7 +342,7 @@ def _draw_short_chart_frame_contents(
     ax.cla()
     
     # 1. Background grid & styling
-    ax.set_facecolor("#0a0a0a")
+    ax.set_facecolor("#0e0d16")
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.6, 9.6)
     ax.set_yticks([])
@@ -293,11 +355,11 @@ def _draw_short_chart_frame_contents(
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
-    ax.spines["bottom"].set_color("#444444")
+    ax.spines["bottom"].set_color("#1a1a2e")
     ax.tick_params(axis="x", colors="white", labelsize=8)
     
     # Add horizontal grid lines with low opacity for high-tech premium feel
-    ax.grid(axis='x', color='#ffffff', linestyle='--', alpha=0.1, zorder=0)
+    ax.grid(axis='x', color='#00f0ff', linestyle='-', alpha=0.08, zorder=0)
     ax.set_axisbelow(True)
     
     if not entities_data:
@@ -332,14 +394,41 @@ def _draw_short_chart_frame_contents(
             edge_color = "#ffffff"  # Standard White
             line_width = 0.6
             
-        # Draw standard bar
-        ax.barh(
-            y, norm_val, height=BAR_HEIGHT, color=color, 
-            edgecolor=edge_color, linewidth=line_width, alpha=0.9, left=0, zorder=3
-        )
+        # Draw Neon Glow Capsule Bars:
+        # Glow Layer 1: very soft, wide
+        glow_width_1 = norm_val
+        glow_height_1 = BAR_HEIGHT * 1.3
+        glow_y_1 = y - glow_height_1 / 2.0
+        if glow_width_1 > 0:
+            glow_patch_1 = FancyBboxPatch(
+                (0, glow_y_1), glow_width_1, glow_height_1,
+                boxstyle=f"round,pad=0,rounding_size={min(glow_width_1 * 0.4, glow_height_1 * 0.4)}",
+                facecolor=color, edgecolor="none", alpha=0.08, zorder=2
+            )
+            ax.add_patch(glow_patch_1)
+            
+            # Glow Layer 2: slightly tighter, a bit more opacity
+            glow_height_2 = BAR_HEIGHT * 1.15
+            glow_y_2 = y - glow_height_2 / 2.0
+            glow_patch_2 = FancyBboxPatch(
+                (0, glow_y_2), glow_width_1, glow_height_2,
+                boxstyle=f"round,pad=0,rounding_size={min(glow_width_1 * 0.4, glow_height_2 * 0.4)}",
+                facecolor=color, edgecolor="none", alpha=0.18, zorder=2
+            )
+            ax.add_patch(glow_patch_2)
+
+        # Draw the main capsule bar
+        if norm_val > 0:
+            r_size = min(norm_val * 0.4, BAR_HEIGHT * 0.4)
+            main_patch = FancyBboxPatch(
+                (0, y - BAR_HEIGHT/2.0), norm_val, BAR_HEIGHT,
+                boxstyle=f"round,pad=0,rounding_size={r_size}",
+                facecolor=color, edgecolor=edge_color, linewidth=line_width,
+                alpha=0.95, zorder=3
+            )
+            ax.add_patch(main_patch)
         
         # Clean/truncate entity name to prevent cutting off
-        import re
         clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", entity).strip()
         if len(clean_name) > 20:
             clean_name = clean_name[:17] + "..."
@@ -360,20 +449,38 @@ def _draw_short_chart_frame_contents(
             color="white", fontproperties=font_regular, fontsize=9,
         )
         
-        # Overtake highlight / climbing check
+        # Draw circular knob at bar tip
+        ax.plot(
+            norm_val, y, marker='o', markersize=22, 
+            color=color, markeredgecolor=edge_color, markeredgewidth=1.2, zorder=4
+        )
+        # Initials inside knob
+        initial = clean_name[0].upper() if clean_name else ""
+        ax.text(
+            norm_val, y, initial,
+            ha="center", va="center",
+            color="#0e0d16", fontproperties=font_bold, fontsize=8, zorder=5
+        )
+        
+        # Climbing arrow indicator + value text positioning
         is_climbing = d.get("is_climbing", False)
         val_str = format_value(d["value"], short_unit)
         
         if is_climbing:
-            # Draw green value label to signal climbing rank
+            # Draw green up-arrow marker at norm_val + 0.045
+            ax.plot(
+                norm_val + 0.045, y, marker='^', color='#2ecc71', markersize=8, zorder=4
+            )
+            # Draw green value label at norm_val + 0.07
             ax.text(
-                norm_val + 0.01, y, val_str,
+                norm_val + 0.07, y, val_str,
                 ha="left", va="center",
                 color="#2ecc71", fontproperties=font_bold, fontsize=8.5,
             )
         else:
+            # Draw standard value label at norm_val + 0.045
             ax.text(
-                norm_val + 0.01, y, val_str,
+                norm_val + 0.045, y, val_str,
                 ha="left", va="center",
                 color="white", fontproperties=font_regular, fontsize=8,
             )
@@ -386,12 +493,12 @@ def _draw_short_chart_frame_contents(
         color="white", fontproperties=font_regular, fontsize=8
     )
     
-    # Ghost year in background
+    # Ghost year in background (glowing cyan subtle style)
     ax.text(
         0.98, 0.05, date_label,
         ha="right", va="bottom",
-        color="white",
-        alpha=0.15,
+        color="#00f0ff",
+        alpha=0.06,
         fontproperties=font_bold,
         fontsize=110,
         transform=ax.transAxes,
@@ -422,12 +529,12 @@ def _draw_short_chart_frame_contents(
             wrap=True,
         )
         
-    # Draw dynamic progress line at the very top of the frame
+    # Draw dynamic progress line at the very top of the frame (neon pink '#ff007f')
     if draw_progress and total_frames > 1:
         progress = min(1.0, max(0.0, frame_number / (total_frames - 1)))
         progress_rect = plt.Rectangle(
             (0, 0.992), progress, 0.008, 
-            facecolor='#FF6B6B', transform=fig.transFigure, zorder=100
+            facecolor='#ff007f', transform=fig.transFigure, zorder=100
         )
         fig.patches.append(progress_rect)
 
@@ -453,7 +560,7 @@ def _draw_short_chart_frame(
     fig.savefig(
         frames_dir / f"frame_{frame_number:05d}.png",
         dpi=100,
-        facecolor="#000000",
+        facecolor="#06050a",
         pad_inches=0,
         pil_kwargs={"compress_level": 1},
     )
@@ -471,10 +578,11 @@ def _draw_short_intro_frame(
     frame_number: int,
     initial_entities_data: list[dict],
     topic_info: dict,
+    first_date_label: str,
 ) -> None:
     """Draw a single intro frame: the starting chart with a dimmed mask and hook card overlay."""
     fig.clf()
-    fig.patch.set_facecolor("#000000")
+    fig.patch.set_facecolor("#06050a")
     
     # 1. Recreate axes and draw the initial frame of the chart (so the user sees the chart in background)
     ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
@@ -485,7 +593,7 @@ def _draw_short_intro_frame(
     # Draw standard background chart on ax
     _draw_short_chart_frame_contents(
         ax, fig, initial_entities_data, title, source, 
-        str(initial_entities_data[0]["year"] if "year" in initial_entities_data[0] else ""),
+        first_date_label,
         topic_info, frame_number, draw_progress=False
     )
     
@@ -512,15 +620,15 @@ def _draw_short_intro_frame(
         font_regular = _get_font_properties(bold=False)
         
         # Border outline colors alternate slightly to feel dynamic
-        border_color = "#FFD93D" if frame_idx % 4 < 2 else "#4ECDC4"
+        border_color = "#00f0ff" if frame_idx % 4 < 2 else "#ff007f"
         
         # Background box for hook text
         card_box = dict(
-            boxstyle="round,pad=0.8",
-            facecolor="#181818",
+            boxstyle="round,pad=1.0",
+            facecolor="#0e0d16",
             edgecolor=border_color,
             alpha=alpha_card,
-            linewidth=1.8,
+            linewidth=2.0,
         )
         
         # Display the hook text in a prominent centered card
@@ -540,7 +648,7 @@ def _draw_short_intro_frame(
         fig.text(
             0.5, card_y - 0.12, "Watch to see who wins!",
             ha="center", va="center",
-            color=(1.0, 1.0, 1.0, alpha_card * 0.9),
+            color=(0.0, 0.94, 1.0, alpha_card * 0.9), # neon cyan text
             fontproperties=font_bold,
             fontsize=10,
             transform=fig.transFigure,
@@ -550,7 +658,7 @@ def _draw_short_intro_frame(
     fig.savefig(
         frames_dir / f"frame_{frame_number:05d}.png",
         dpi=100,
-        facecolor="#000000",
+        facecolor="#06050a",
         pad_inches=0,
         pil_kwargs={"compress_level": 1},
     )

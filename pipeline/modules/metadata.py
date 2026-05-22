@@ -6,6 +6,7 @@ Uses Gemini to create compelling, SEO-optimized metadata.
 
 import json
 import re
+import time
 
 from google import genai
 from google.genai import types
@@ -67,39 +68,71 @@ Return ONLY valid JSON:
 
     from pipeline.modules.gemini_helper import generate_content_with_retry
     max_json_retries = 3
-    for attempt in range(max_json_retries):
-        try:
-            response = generate_content_with_retry(
-                client=client,
-                model=GEMINI_MODEL,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    temperature=0.7,
-                ),
-            )
-            raw = response.text.strip()
-            if raw.startswith("```"):
-                raw = re.sub(r"^```(?:json)?\s*", "", raw)
-                raw = re.sub(r"\s*```$", "", raw)
+    result = None
 
-            result = json.loads(raw)
-            break  # Success!
-        except json.JSONDecodeError as e:
-            if attempt == max_json_retries - 1:
-                raise RuntimeError(f"Invalid JSON from Gemini after {max_json_retries} attempts.\nRaw: {raw}\nError: {e}") from e
-            print(f"[metadata] Invalid JSON: {e}. Retrying JSON generation (Attempt {attempt+1}/{max_json_retries})...")
-            time.sleep(5)
-        except Exception as e:
-            raise RuntimeError(f"Gemini metadata generation failed: {e}") from e
+    try:
+        for attempt in range(max_json_retries):
+            try:
+                response = generate_content_with_retry(
+                    client=client,
+                    model=GEMINI_MODEL,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        temperature=0.7,
+                    ),
+                )
+                raw = response.text.strip()
+                if raw.startswith("```"):
+                    raw = re.sub(r"^```(?:json)?\s*", "", raw)
+                    raw = re.sub(r"\s*```$", "", raw)
 
+                result = json.loads(raw)
+                break  # Success!
+            except json.JSONDecodeError as e:
+                if attempt == max_json_retries - 1:
+                    raise RuntimeError(f"Invalid JSON from Gemini after {max_json_retries} attempts.\nRaw: {raw}\nError: {e}") from e
+                print(f"[metadata] Invalid JSON: {e}. Retrying JSON generation (Attempt {attempt+1}/{max_json_retries})...")
+                time.sleep(5)
+    except Exception as e:
+        print(f"[metadata] Warning: Gemini metadata generation failed: {e}. Falling back to programmatic metadata.")
+        topic_title = topic_info.get("topic", "Data Visualization")
+        source = topic_info.get("source", "Open Numbers / OWID")
+        start_year = extreme_segment.get("start_year", "")
+        end_year = extreme_segment.get("end_year", "")
+        
+        # Clean up topic title for tags
+        clean_title = re.sub(r'[^\w\s]', '', topic_title)
+        tags = [t.lower() for t in clean_title.split() if len(t) > 3][:12]
+        if "data" not in tags:
+            tags.append("data")
+        if "visualization" not in tags:
+            tags.append("visualization")
+            
+        result = {
+            "long_form": {
+                "title": f"How {topic_title} Changed Over Time",
+                "description": f"A comprehensive data visualization tracking {topic_title}.\n\nData source: {source}",
+                "tags": tags + ["chart race", "bar chart race", "statistics"]
+            },
+            "short": {
+                "title": f"The Dramatic Shift in {topic_title} ({start_year}-{end_year}) #Shorts",
+                "description": f"Highlighting the most extreme changes in {topic_title} from {start_year} to {end_year}.",
+                "tags": tags + ["shorts", "trending", "history"]
+            }
+        }
 
-    # Validate structure
+    # Validate structure (in case the generated JSON was partially valid but missing keys)
     for key in ("long_form", "short"):
         if key not in result:
-            raise RuntimeError(f"Missing '{key}' in metadata response.")
+            result[key] = {}
         for field in ("title", "description", "tags"):
             if field not in result[key]:
-                raise RuntimeError(f"Missing '{field}' in metadata['{key}'].")
+                if field == "title":
+                    result[key]["title"] = f"{topic_info.get('topic', 'Data Visualization')} #Shorts" if key == "short" else f"{topic_info.get('topic', 'Data Visualization')}"
+                elif field == "description":
+                    result[key]["description"] = f"Data tracking {topic_info.get('topic', 'Data Visualization')}"
+                elif field == "tags":
+                    result[key]["tags"] = ["data", "visualization"]
 
     # Ensure Short title ends with #Shorts
     if not result["short"]["title"].rstrip().endswith("#Shorts"):

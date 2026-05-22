@@ -655,5 +655,101 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-22T09:49:02.467995+00:00",
+    "topic": "The Nuclear Arms Race: A Global Threat Timeline",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1942,
+      "end_year": 1962
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/HzKZABGzd8I",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-22T12:30:58.965260+00:00",
+    "topic": "Death rate by age group in England and Wales - ONS",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Death%20rate%20by%20age%20group%20in%20England%20and%20Wales%20-%20ONS/Death%20rate%20by%20age%20group%20in%20England%20and%20Wales%20-%20ONS.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1928,
+      "end_year": 1945
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "fail",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Metadata generation failed: Gemini metadata generation failed: 'NoneType' object has no attribute 'text'"
+  },
+  {
+    "timestamp": "2026-05-22T12:32:36.198297+00:00",
+    "topic": "Suicide rates by sex and age (IHME, 2019)",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Suicide%20rates%20by%20sex%20and%20age%20%28IHME%2C%202019%29/Suicide%20rates%20by%20sex%20and%20age%20%28IHME%2C%202019%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1990,
+      "end_year": 2010
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "fail",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Metadata generation failed: Gemini metadata generation failed: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-2.5-flash\\nPlease retry in 54.285811718s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-flash'}, 'quotaValue': '20'}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '54s'}]}}"
+  },
+  {
+    "timestamp": "2026-05-22T13:09:32.626656+00:00",
+    "topic": "Where Terror Strikes: The Evolving Targets of Global Terrorism",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Terrorist%20attack%20by%20target%20type%20-%20Global%20Terrorism%20Database%20%282018%29/Terrorist%20attack%20by%20target%20type%20-%20Global%20Terrorism%20Database%20%282018%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1976,
+      "end_year": 1995
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
   }
 ]

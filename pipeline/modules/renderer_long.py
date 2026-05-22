@@ -72,6 +72,10 @@ def render_long_form(
     print(f"[renderer_long] Chart type: {chart_type}")
     print(f"[renderer_long] Data shape: {df.shape}")
 
+    import shutil
+    if FRAMES_LONG_DIR.exists():
+        print(f"[renderer_long] Cleaning up existing frames in {FRAMES_LONG_DIR}...")
+        shutil.rmtree(FRAMES_LONG_DIR, ignore_errors=True)
     FRAMES_LONG_DIR.mkdir(parents=True, exist_ok=True)
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
