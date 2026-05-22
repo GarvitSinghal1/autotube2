@@ -140,7 +140,7 @@ def _execute_steps(logger: PipelineLogger) -> None:
     try:
         from pipeline.modules.renderer_short import render_short
         short_path, entity_colors = render_short(
-            df_yearly, chart_type, topic_info, extreme_segment
+            df_monthly, chart_type, topic_info, extreme_segment
         )
         state["short_path"] = short_path
         logger.mark_step("renderer_short", "pass")

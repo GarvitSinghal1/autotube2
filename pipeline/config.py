@@ -35,13 +35,13 @@ FPS = 30
 
 # Frames per time-step (interpolation smoothness)
 LONG_FRAMES_PER_STEP = 20   # ~0.67 s per month/year in long form
-SHORT_FRAMES_PER_STEP = 8   # faster pacing for Shorts
+SHORT_FRAMES_PER_STEP = 6   # faster pacing for Shorts
 
 # Duration targets (seconds)
 LONG_FORM_MIN_DURATION = 300   # 5 min
 LONG_FORM_MAX_DURATION = 600   # 10 min
-SHORT_MIN_DURATION = 50
-SHORT_MAX_DURATION = 59
+SHORT_MIN_DURATION = 20
+SHORT_MAX_DURATION = 35
 
 # ── Design tokens ────────────────────────────────────────────────────────────
 BG_COLOR = "#0f0f0f"
