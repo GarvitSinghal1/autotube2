@@ -19,19 +19,21 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
 SYSTEM_PROMPT = """\
-You are an expert data journalist curating topics for YouTube data visualization videos.
+You are a viral YouTube Shorts and video producer curating data visualization topics.
 You will be provided with a list of real dataset names from Our World in Data.
-Your job is to select the single MOST fascinating, surprising, or dramatic dataset from the list.
-Choose a topic that would make a great animated bar chart race, line chart race, or map animation.
+Your job is to select the single MOST dramatic, surprising, and human-interest dataset from the list.
+Choose a topic that will hook a general audience in the first 2 seconds.
 
-CRITICAL: Avoid dry, boring academic topics, niche development/clinical metrics (e.g. Guinea worm cases, basic agricultural yields, specific nutrient deficiencies, diarrhea rates). 
-Instead, prioritize dramatic human stories, global conflicts, technological transitions, changes in lifestyles/addictions (food, alcohol, tech), existential threats (nuclear weapons, natural disasters), or major historical shifts.
+CRITICAL GUIDELINES:
+1. Avoid dry academic, political development, or clinical metrics (e.g. government spending, energy efficiency, Gini coefficients, pollution rates, standard disease prevalence/treatment rates).
+2. Prioritize high-retention concepts: global conflicts, weapon/nuclear proliferation, space exploration milestones, lifestyles/addictions (alcohol, cigarette sales), historical crime/suicide trends, natural disasters, major epidemics/plagues, or massive wealth concentration (billionaires).
+3. The title ("topic") MUST be an engaging, clickable YouTube hook (e.g., use formats like "The Rise and Fall of...", "The Deadliest...", "The Shocking Truth About...", "Inside the...") rather than repeating the dry dataset name.
 
 You MUST respond with ONLY a valid JSON object, no markdown, no explanation:
 {
   "dataset_name": "the exact name you chose from the list provided",
-  "topic": "a catchy, descriptive title for the YouTube video",
-  "description": "one sentence explaining why this data is compelling to watch"
+  "topic": "a catchy, dramatic YouTube video hook title",
+  "description": "one sentence explaining why this data is highly compelling or shocking to watch"
 }
 """
 
@@ -55,15 +57,17 @@ _FALLBACK_OWID_FOLDERS = [
 INTERESTING_KEYWORDS = [
     "military", "weapon", "nuclear", "war", "conflict", "battle", "defense", "armaments",
     "space", "nasa", "rocket", "exploration", "satellite",
-    "internet", "mobile", "phone", "technology", "computer", "ai", "robot", "patent", "innovation",
-    "homicide", "crime", "murder", "suicide", "terrorism", "disaster", "earthquake", "tsunami", "volcano",
-    "diet", "food", "nutrition", "sugar", "meat", "alcohol", "beer", "wine", "smoking", "tobacco", "drug", "addiction",
-    "democracy", "regime", "election", "political", "government", "freedom", "human rights",
-    "deforestation", "forest", "extinction", "species", "whale", "animal", "wildlife",
-    "energy", "oil", "coal", "gas", "solar", "wind", "renewable", "electricity",
-    "billionaire", "wealth", "poverty", "inequality",
-    "olympic", "medal", "sports", "leisure",
-    "pandemic", "epidemic", "plague", "influenza", "covid", "death"
+    "homicide", "crime", "murder", "suicide", "terrorism", "terrorist", "poaching", "fatality", "fatalities", "accident", "aviation",
+    "disaster", "earthquake", "tsunami", "volcano",
+    "alcohol", "beer", "wine", "drinking", "smoking", "tobacco", "cigarette", "drug", "addiction",
+    "billionaire", "top 1%", "wealth shares",
+    "olympic", "medal", "sports",
+    "pandemic", "epidemic", "plague", "influenza", "covid", "smallpox", "polio",
+    "whale", "extinction", "rhino",
+    "media coverage", "causes of death",
+    "fertility", "births",
+    "iq data", "intelligence",
+    "plastic waste"
 ]
 
 BORING_KEYWORDS = [
@@ -72,7 +76,13 @@ BORING_KEYWORDS = [
     "pertussis", "diphtheria", "leprosy", "trachoma", "onchocerciasis", "filariasis", "rabies",
     "dengue", "fever", "chagas", "leishmaniasis", "trypanosomiasis", "hookworm", "trichuriasis",
     "ascariasis", "nematode", "fluke", "sanitation", "hygiene", "wastewater", "treatment",
-    "deworming", "iodized", "vitamin", "breastfeeding", "stunting", "wasting", "anaemia"
+    "deworming", "iodized", "vitamin", "breastfeeding", "stunting", "wasting", "anaemia",
+    "education", "expenditure", "spending", "transparency", "yield", "attainment", "schooling", "literacy",
+    "diet compositions", "macronutrient", "calorie", "protein", "fat supply", "fat intake", "nutrition", "food supply", "cereal allocation",
+    "pm2.5", "pollution", "emission", "air quality", "pollutant", "co2", "ghg", "methane", "nitrous",
+    "gdp", "inequality", "poverty", "gini", "index", "povcalnet", "development", "mpi", "national poverty",
+    "regime", "democracy", "political rights", "human rights", "civil liberties", "freedom house",
+    "prevalence", "incidence", "case rate", "treatment", "coverage", "at birth", "life stage"
 ]
 
 def _get_valid_datasets_from_db() -> list[dict]:
@@ -170,7 +180,7 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     else:
         candidate_names = dataset_names
 
-    sample_size = min(25, len(candidate_names))
+    sample_size = min(40, len(candidate_names))
     sample_names = random.sample(candidate_names, sample_size)
     
     user_prompt = "Here are the available datasets. Pick the most fascinating one:\n\n" + "\n".join(sample_names)
