@@ -1,0 +1,330 @@
+20th century deaths in US - CDC
+A Century of Work and Leisure - Ramey and Francis (2009)
+Absolute deaths from ambient PM2.5 air pollution- State of Global Air
+Agricultural policy support - (Agrimonitor, 2017)
+Agricultural total factor productivity (USDA)
+Air Pollutant Emissions - OECD
+Air pollution emissions by fuel (CEDS, 2022)
+Air pollution emissions by fuel per capita (CEDS, 2022)
+Alcohol consumption by type since 1890 (Alexander & Holmes, 2017)
+Alcohol consumption since 1890 (Alexander & Holmes, 2017)
+Arable land per crop output (PIN) (FAO, 2019)
+Armed forces personnel as a share of the total population (OWID based on World Bank)
+Attainable yields (Mueller et al. 2012)
+Aviation accidents and fatalities by flight phase (ASN, 2019)
+Births outside of marriage
+CO2 emissions by sector (CAIT, 2020)
+CO2 emissions by sector (CAIT, 2021)
+CO2 emissions by source - CDIAC (2016)
+CO2 emissions in trade as % production - Global Carbon Project (2014)
+CO2-GDP Coupling - OWID based on World Bank
+Cancer death rates in the US over the long-term - American Cancer Society
+Cancer deaths grouped - OWID based on IHME
+Causes of child mortality – IHME Global Burden of Disease study (2017)
+Causes of death vs. media coverage (Shen et al. 2018)
+Causes of death vs. media coverage - Shen
+Cereal allocation to food, feed, fuel (OWID based on FAO)
+Cereal yield index - (World Bank (2017) & OWID)
+Chartbook of Economic Inequality, Gini (2016)
+Child Mortality Estimates - CME Info (2018)
+Child Mortality Rates (Complete Gapminder, v10) (2017)
+Child Mortality Rates (Selected Gapminder, v10) (2017)
+Child deaths by life stage (OWID based on UN IGME)
+Child deaths – United Nations Population Division (2015)
+Child mortality - Gapminder (2013)
+Child mortality data - IHME (2017)
+Child mortality estimates - Gapminder (2015)
+Child mortality, 1950-2017 (IHME, 2017)
+Children that died before 5 years of age per woman - Gapminder (2017)
+Children that survived past 5 years of age per woman - Gapminder (2017)
+City populations (1950-2035) - UN Urbanization Prospects (2018)
+Clark, Flèche & Senik – Happiness Inequality
+Coal production - The SHIFT Project
+Coefficient of Variation (CV) in caloric intake
+Conflict deaths by country – UCDP (2019)
+Conflict deaths – UCDP Georeferenced Event Data (2019)
+Correlates of War! National Material Capabilities (v4.0)
+Country Income Classification - World Bank (2017)
+Crude marriage rate (OWID based on UN, OECD, Eurostat and other sources)
+Cumulative share of marriages ending in divorce (England and Wales, UK ONS)
+D1 vs D10-D1 income!consumption – Povcal (2018)
+Daily fat supply- FAO (2017)
+Daily protein supply - FAO (2017)
+Days and hours of work in Old and New Worlds - Huberman and Minns (2007)
+Death rate by age group in England and Wales - ONS
+Decomposition of Gender Wage Gap 1980 - Blau and Kahn (2017)
+Democratic satisfaction - Claassen
+Democratic support - Claassen
+Diet compositions by commodity categories - FAO (2017)
+Diet compositions by specific food commodities - FAO (2017)
+Dietary macronutrient compositions - FAO (2017)
+Disability Adjusted Life Years - WHO (2015)
+Drinking habits in Great Britain - UK ONS
+Drivers of forest loss in Brazil Legal Amazon (Tyukavina et al. 2017)
+ECI Country Rankings (Observatory of Economic Complexity (2016) and the Atlas of Economic Complexity
+Economic Freedom of the World - Fraser Institute (2018)
+Educational Attainment - Barro Lee Education Dataset (2010) 
+Electricity mix from BP & EMBER (2022)
+Electricity mix from BP & EMBER (2022) - archive
+Energy efficiency by passenger mode in USA (BTS)
+Energy imports (% energy use) - World Bank (2014)
+Energy mix from BP (2020)
+Energy mix from BP (2021)
+Energy mix in the UK (DUKES, 2018)
+Estimated average age at marriage, by gender (UN and OECD)
+Estimated average age at marriage, by gender (UN)
+Estimated percent of women who are married or in a union (UN)
+European vehicle passenger sales (ICCT, 2021)
+Expected Years of Schooling - UNDP (2018)
+Extensions in life expectancy (OWID calculations based on UN Population Division (2017 Revision))
+Extreme Poverty 2030 Projections by SSP - Crespo et al. (2018)
+Extreme Poverty Michail Moatsos (OECD)
+Family Benefits Public Spending - OECD (2016)
+Fatal aviation accidents & fatalties - Aviation Safety Network (ASN)
+Female and male life expectancy at birth - OWID based on UN Population Division (2017)
+Female labor force participation rate - OWID (2017)
+Female weekly hours worked – OECD (2017)
+Fertility - UN Population Division (2015 revision)
+Fertility Rate (Selected Gapminder, v12) (2017)
+Fertility rate (Complete Gapminder, v12) (2017)
+Fertilizer use per hectare of land -FAO & Federico
+Fish stocks (RAMLegacy)
+Five year cancer survival rates - Allemani et al. 
+Food expenditure in the USA - USDA
+Food supply (FAO, 2020)
+Forest land, deforestation and change (FAO, 2020)
+Fossil fuel consumption per capita - BP & UN (2017 revision)
+Fossil fuel production (BP & Shift (2020))
+Fossil fuel production BP & Shift (2022)
+GHG Emissions by Country and Sector (CAIT, 2020)
+GHG Emissions by Country and Sector (CAIT, 2021)
+GHG emissions per capita (EDGAR, 2019)
+GISTEMP Temperature Anomaly
+Gas production - Etemad & Luciana
+Gender Inequality Index - Human Development Report (2015)
+Gender Wage Gap – OECD (2017)
+Genuine saving estimates by various measures - Blum, Ducoing, McLaughlin (2017)
+Gini Coefficients – OECD (2016)
+Global BMI in females - NCDRisC (2017)
+Global BMI in males - NCD RisC (2017)
+Global Data Set on Education Quality (1965-2015) - Altinok, Angrist, and Patrinos (2018)
+Global Hunger Index (2021)
+Global Hunger Index- IFPRI (2018)
+Global Primary Energy Consumption - Vaclav Smil (2017) & BP Statistics (2020)
+Global Revenue Statistics Database - OECD (2018)
+Global Tuberculosis Report! TB burden estimates - WHO (2019)
+Global agricultural land by crop - FAO (2017)
+Global death rates from disasters (EMDAT; UN & HYDE)
+Global extreme poverty! Present and past since 1820 (Moatsos in OECD, 2021)
+Global fish catch by end use (FishStat via SeaAroundUs)
+Global year of last polio case plus certification status - GPEI (2017)
+Government Education Expenditure 1960-2010 - Szirmai (2015)
+Government Expenditure – IMF based on Mauro et al. (2015)
+Government Spending – Roine, Vlachos, Waldenström (2009) and US Historical Tables (2016)
+Government Transparency index - Hollyer et al. (2014)
+Guinea Worm Cases - WHO (2018)
+Guinea worm WHO certification status - WHO 2018
+HadCRUT Temperature Anomaly
+Health Coverage – ILO (2014)
+Health Expenditure and Financing - OECDstat (2017)
+Healthcare Access and Quality Index – IHME (2017)
+Healthy Life Expectancy - IHME
+Historical employment and output by sector – OWID (2017)
+Homosexuality opinions – WVS (1981-2016)
+Homosexuality public opinion – Pew Research (2013)
+Household expenditure on Housing, water, electricity, gas and other fuels as a share of GDP - UN
+Households' actual and imputed rent as share of GDP – OECD
+Human Capital in Long-Run - Lee-Lee (2016)
+Human Development Index - UNDP
+Human Height - NCD RisC (2017)
+Human Height - University of Tuebingen (2015)
+Human Rights Protection Score – Christopher Farris (2014) and Keith Schnakenberg
+Human rights protection – Fariss et al. (2020)
+Hypothetical meat consumption - OWID based on FAO & UN
+IPCC Scenarios (IIASA)
+IQ Data - Pietschnig and Voracek (2015)
+Incomes across the Distribution Database (Nolan, Thewissen, Roser) in levels (2016)
+Incomes across the Distribution Database (authored by Nolan, Thewissen, Roser; based on LIS) indexed
+Incomes across the Distribution Database, Gini (2016)
+Indicators for !What is PPP!  - World Bank
+Inequality in Latin America - SEDLAC (CEDLAS and the World Bank)
+Infant mortality rate (IHME - 2017)
+Inheritance for women - How Was Life! (2014)
+Integrated Network for Societal Conflict Research! Political Instability Task Force (PITF)
+LIS Key Figures – Luxumbourg Income Study
+Land under cereal production index - World Bank (2017)
+Land use for biofuels
+Learning costs, J. Doyne Farmer and François Lafond (2016)
+Length of the work day! from 1890s to 1991 - Costa (2000)
+Life Expectancy (1950-2015) – UN Population Division (2015)
+Life Expectancy (at birth) - World Bank (2015)
+Life Expectancy at Birth (both genders) – Clio Infra
+Life expectancy (Gapminder, UN, IHME)
+Life expectancy - OECD
+Life satisfaction – Eurobarometer (2017)
+Life satisfaction – World Value Survey (2014)
+Literacy rate (% of total respondents) - DHS Surveys
+Literate world population (OurWorldInData based on OECD and UNESCO)
+Long run life expectancy - Gapminder, UN
+Long run time use in Norway, by sex - Norway Statistics
+Long term productivity - Bergeaud, Cette, and Lecat (2016)
+Long-term energy transitions - Energy History, Harvard (2016)
+Long-term per capita fossil fuels - OWID based on UN, Gapminder, BP, Etemad & Luciana
+Long-term wheat yields - FAO (2017) & Bayliss-Smith (1984)
+Lung cancer mortality rates (per 100,000) (2022)
+Maddison Project Database 2020 (Bolt and van Zanden (2020))
+Malaria deaths - IHME (2016)
+Marine stocks by region and taxa (ramlegacy)
+Maternal deaths to 2030 (BAU vs. SDG Target) - based on World Bank & UN (2018)
+Maternal mortality projection to 2030 (based on World Bank, 2018)
+Mean BMI - NCD RisC (2017)
+Mean years of schooling, women (15 to 49) – Our World In Data (2017)
+Measures and indicators for Poverty - PovcalNet (World Bank) (2017)
+Median UN Population Projections - Global vs Africa (OWID based on UN)
+Mental and substance use disorder disaggregated - IHME
+Methane emissions by sector (CAIT, 2020)
+Methane emissions by sector (CAIT, 2021)
+Milestones of Women's Political Representation - Paxton et al (2006)
+Military expenditure as a share of GDP - OWID based on COW & SIPRI (2017)
+Mineral production (BGS (2016))
+Mobile Bank Accounts by Region - GSMA (2019)
+Mortality from all forms of violence  (IHME (2016))
+Multidimensional Poverty Index (MPI) 2022 – Current estimates
+Multidimensional Poverty Index (MPI) 2022 – Harmonized over time estimates
+Multinational Time Use Study (MTUS) - Gershuny and Fisher (2013)
+National Poverty Lines - Jolliffe and Prydz (2016)
+National poverty lines (Jolliffe et al., 2022)
+Natural disasters (EMDAT – decadal)
+Natural disasters (EMDAT)
+Natural disasters from 1900 to 2019 - EMDAT (2020)
+Neglected Tropical Diseases (Lymphatic Filariasis) Population requiring PC not-treated and treated -
+Neonatal Mortality Rate - via Childmortality.org (2015)
+Nitrous oxide emissions by sector (CAIT, 2020)
+Nitrous oxide emissions by sector (CAIT, 2021)
+Nuclear weapons proliferation – OWID based on Bleek (2017), Nuclear Threat Initiative (2022)
+Number of child deaths 1950-2017 (IHME, 2017)
+Number of children who are stunted (OWID based on UNICEF!WHO)
+Number of deaths due to tetanus
+Number of deaths in England and Wales by age - ONS
+Number of direct national elections — NELDA (2015)
+Number of infant deaths (IHME - 2017)
+Number of neonatal deaths (IHME - 2017)
+Number of observations in Povcal per decade - OWID (2017)
+Number of parties to multilateral environmental agreements - UNCTAD
+Number of people without access to safe water and sanitation (WHO Wash, 2019)
+Number of polio cases per one million population - WHO (2017)
+Number of tourist departures per 1000 - World Bank & UN (2019)
+OECD Education! PISA Test Scores - PISA (2015)
+OECD Social Spending- Family
+OECD Social Spending- Health
+OECD Social Spending- Housing
+OECD Social Spending- Incapacity related
+OECD Social Spending- Old Age
+OECD Social Spending- Other social policy areas
+OECD Social Spending- Survivors
+OECD Social Spending- Unemployment
+OECD! Education Statistics (2017)
+OPHI Multidimensional Poverty Index - Alkire and Robles (2016)
+Oil production - Etemad & Luciana
+Ozone concentration-StateofGlobalAir
+Patent and publication rates  - OWID based on World Bank & UN
+Penn World Table version 10.0
+Plastic waste trade (UN Comtrade, 2022)
+PolcalNet Global Poverty (2017)
+Population Dynamics and Global Human Capital - IIASA (2015)
+Population Growth -  UN Population Division (2015 revision)
+Population by age group to 2100 (based on UNWPP, 2017 medium scenario)
+Population by country, 1800 to 2100 (Gapminder & UN)
+Population data (Gapminder up to 1949; UN Population Division 1950 to 2015)
+Poverty rate (!50% of median) (LIS Key Figures, 2018)
+Press freedom - Freedom House (2017)
+Prevalence of undernourishment - World Bank (2017) & UN SOFI (2018)
+Prevalence of undernourishment by region - UN FAO SOFI (2017 & 2018)
+Prevalence of weight categories in females - NCDRisC (2017)
+Prevalence of weight categories in males - NCDRisC (2017)
+Prevalence of zinc deficiency - Wessells et al. (2012)
+Primary energy consumption (BP & Shift, 2020)
+Primary energy consumption BP & EIA (2022)
+Projected change in under-5 population by country 2015, 2050, 2100 - OWID based on UN Population (20
+Public Expenditure on Education OECD - Tanzi & Schuknecht (2000)
+RAND Database of Worldwide Terrorism Incidents
+Raised Blood Pressure Prevalence - NCD RisC (2017)
+Rate of Natural Population Increase – UN Population Division (2015)
+Real Commodity Price Index since 1850 - Jacks (2016)
+Renewable energy costs (IRENA, 2020)
+Reported number and different estimations of polio cases (WHO, 2018)
+Required rate of maternal mortality decline for SDG - based on World Bank (2018)
+Revenue shares from tax – Flora (1983) and ICTD (2016)
+Rhino poaching rates (AfRSG, 2019)
+Rhino populations (AfRSG & other sources, 2022)
+Risk attribution of cancer deaths to tobacco smoking - IHME
+SIPRI Military Expenditure Database
+SO2 emissions by country (1850-2000) - Clio Infra
+SO2 per capita - Clio Infra
+Self-reported loneliness in older adults - OWID (2018)
+Sex ratio at birth (Chao et al. 2019)
+Sex ratio by age (OWID based on UNWPP, 2017)
+Share of arable land which is organic - OWID based on FAO
+Share of deaths attributed to air pollution (IHME, 2019)
+Share of employment in the financial sector (GGDC, 2017)
+Share of energy from cereals, roots and tubers - FAO (2017)
+Share of people who report having intentions to start business - Global Entrepreneurship Monitor
+Share of single parent families (UN Population Division 2018)
+Smallpox cases by country 1920-1977
+Smoking cigarette sales (International Smoking Statistics (2017)) 
+Smoking prevalence and cigarette consumption (IHME, GHDx (2012))
+Social Expenditure in the long run - Lindert 2004; OECD 1985; OECD (SOCX).
+Split of exports to different country groups - OWID calculations based on Fouquin and Hugot (CEPII 2
+Suicide rates by sex and age (IHME, 2019)
+Taxes – ICTD GRD (2021)
+Teaching time lost - World Development Report (2018)
+Terrorist attack by target type - Global Terrorism Database (2018)
+Terrorist attacks by type - Global Terrorism Database (2018)
+Terrorist attacks by weapon type - Global Terrorism Database (2018)
+Tetanus Neonatal Rate - calculated from WHO incidence (2017) and WDI population data - Hannah Behren
+The allocation of time over five decades - Aguiar and Hurst (2006)
+The world's number and share of vaccinated one-year-olds 
+Time spent on domestic work – UN (2017) and OECD (2014)
+Time spent, participation time, and participation rates - Eurostat
+Top 1% wealth shares - Chartbook of Economic Inequality (2017)
+Top income shares – World Wealth and Income Database (2018)
+Top marginal income tax rate – Reynolds (2008)
+Total Economy Productivity Growth - OECD
+Total cases of poliomyelitis virus by country and year from 1980 onwards - WHO (2020)
+Total gross official disbursements for medical research and basic heath sectors - OECD
+Total population - Gapminder, UN Population Division
+Total population by broad age group, both sexes, 1950-2100 - UN Population Division (2015)
+Total value of exports by country to world (%GDP) (OWID calculations based on Fouquin and Hugot (CEP
+Trade share by type of trade (OWID calculations based on NBER- United Nations Trade Data 1962-2000)
+Trade share with capital- and labor-intensive countries (OWID calculations based on Fouquin and Hugo
+Trust – World Value Survey
+UN Population Division (2015)
+UN Population Division (Median Age) (2015)
+UNESCO metadata on literacy (UIS (2017))
+USA Consumer Price Index Goods and Services 1997-2017 - US Bureau of Labor Statistics (2017)
+Under 5 mortality rate [Our World in Data]
+Under five mortality rate - UN World Population Prospects (2015)
+Unemployment rate, ages 25-54, by education - ILOSTAT (2017)
+United Nations! Human Development Index (HDI)
+Urban and rural population 1950-2050 - UN World Urbanization Prospects 2018
+Urbanization in the long run - OWID based on the UN World Urbanization Prospects 2018 and others
+Vaccine Coverage and Disease Burden - WHO (2017)
+Value of global merchandise imports and exports - (Fouquin and Hugot (CEPII 2016) National data)
+Vegetable oil yields (FAO)
+Violent discipline – UNICEF (2017)
+WHO Vaccination Schedule (2021)
+Water and Sanitation (WHO WASH, 2021)
+Water withdrawals and consumption - Aquastat
+Wealth (total) by component for various country groupings - World Bank (2017)
+Wealth per capita by component for various country groupings - World Bank (2017)
+Weekly home production hours in the USA - Ramey (2009) & Ramey Francis (2009)
+Whale catch by decade (Rocha et al. & IWC)
+Women’s Political Representation using Paxton et al (2006), IPU (2017) & WDI (2017) 
+Working Hours Data - Huberman & Minns (2007)
+World Bank! Education Dataset - World Bank (2015)
+World Happiness Report (2022)
+World Inequality Database (WID) - Pretax income
+Years of Schooling - based on Lee-Lee (2016), Barro-Lee (2018) and UNDP (2018)
+Years of Schooling - based on Lee-Lee (2016), Barro-Lee (2018); and UNDP (2018)
+Youth Mortality Rates - UN IGME (2021)
+pm25-exposure-world-bank

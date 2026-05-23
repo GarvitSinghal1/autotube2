@@ -751,5 +751,125 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
+  },
+  {
+    "timestamp": "2026-05-22T13:31:05.144689+00:00",
+    "topic": "Mapping the World's Deadliest Conflicts: A Visual History of Human Loss",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Conflict%20deaths%20%E2%80%93%20UCDP%20Georeferenced%20Event%20Data%20%282019%29/Conflict%20deaths%20%E2%80%93%20UCDP%20Georeferenced%20Event%20Data%20%282019%29.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 1995,
+      "end_year": 2014
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
+  },
+  {
+    "timestamp": "2026-05-22T14:02:45.179395+00:00",
+    "topic": "IQ Data - Pietschnig and Voracek (2015)",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/IQ%20Data%20-%20Pietschnig%20and%20Voracek%20%282015%29/IQ%20Data%20-%20Pietschnig%20and%20Voracek%20%282015%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1937,
+      "end_year": 1957
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/j8JCKAle6SQ",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-23T07:04:58.981970+00:00",
+    "topic": "Inside the Nuclear Club: The Shocking Truth About Global Weapon Proliferation",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1942,
+      "end_year": 1962
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/HseszKXtFFk",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-23T07:20:24.696170+00:00",
+    "topic": "The Shocking Truth About Nuclear Weapons: Who Has Them Now?",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1942,
+      "end_year": 1962
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/U4UrGbbHUnU",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
+  },
+  {
+    "timestamp": "2026-05-23T07:27:12.367542+00:00",
+    "topic": "Inside the Nuclear Arms Race: The Shocking Truth of Global Proliferation",
+    "dataset_url": "https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29/Nuclear%20weapons%20proliferation%20%E2%80%93%20OWID%20based%20on%20Bleek%20%282017%29%2C%20Nuclear%20Threat%20Initiative%20%282022%29.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2003,
+      "end_year": 2022
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
   }
 ]
