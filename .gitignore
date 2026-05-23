@@ -22,3 +22,6 @@ tmp/
 # Helper script
 get_refresh_token.py
 test_youtube.py
+
+# Local rendering outputs
+output/

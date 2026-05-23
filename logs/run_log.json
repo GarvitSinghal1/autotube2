@@ -895,5 +895,29 @@
       "uploader": "pending"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-23T08:15:47.177728+00:00",
+    "topic": "The Shocking Truth: How Many Nuclear Weapons Does the World Really Have?",
+    "dataset_url": "https://ourworldindata.org/grapher/nuclear-warhead-stockpiles.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2015,
+      "end_year": 2026
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/P1I2MutHaqU",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
