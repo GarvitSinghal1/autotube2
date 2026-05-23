@@ -2,7 +2,7 @@ name: Daily Video Pipeline
 
 on:
   schedule:
-    - cron: '0 6 * * *'  # 6:00 AM UTC daily
+    - cron: '0 */4 * * *'  # Run 6 times a day, every 4 hours (UTC)
   workflow_dispatch:       # allow manual trigger
 
 env:
