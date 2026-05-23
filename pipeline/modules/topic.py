@@ -78,6 +78,31 @@ BORING_KEYWORDS = [
     "prevalence", "incidence", "case rate", "treatment", "coverage", "at birth", "life stage"
 ]
 
+def _get_used_dataset_names() -> set[str]:
+    """Return the set of dataset names that have already been uploaded."""
+    from pipeline.config import DATASETS_INDEX_DB
+    import sqlite3
+
+    if not DATASETS_INDEX_DB.exists():
+        return set()
+
+    try:
+        conn = sqlite3.connect(str(DATASETS_INDEX_DB))
+        cursor = conn.cursor()
+        # Check if the uploads table exists (it may not on first run)
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='uploads'")
+        if not cursor.fetchone():
+            conn.close()
+            return set()
+        cursor.execute("SELECT DISTINCT dataset_name FROM uploads")
+        names = {row[0] for row in cursor.fetchall()}
+        conn.close()
+        return names
+    except Exception as e:
+        print(f"[topic] Failed to query uploads table: {e}")
+        return set()
+
+
 def _get_valid_datasets_from_db() -> list[dict]:
     """Load valid datasets from SQLite index database if available."""
     from pipeline.config import DATASETS_INDEX_DB
@@ -153,8 +178,13 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         dataset_names = fallback_names
         dataset_map = {}
 
-    if blacklist:
-        dataset_names = [d for d in dataset_names if d not in blacklist]
+    # Merge ephemeral blacklist with persistently-used datasets
+    used_names = _get_used_dataset_names()
+    if used_names:
+        print(f"[topic] Filtering out {len(used_names)} previously-uploaded datasets.")
+    exclude = (blacklist or set()) | used_names
+    if exclude:
+        dataset_names = [d for d in dataset_names if d not in exclude]
         
     # Filter datasets to keep only potentially interesting ones
     interesting_names = []

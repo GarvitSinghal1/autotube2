@@ -240,6 +240,53 @@ def _execute_steps(logger: PipelineLogger) -> None:
         logger.mark_step("uploader", "fail")
         raise RuntimeError(f"Upload failed: {e}") from e
 
+    # ── Step 9.5: Record Upload for Redundancy Prevention ────────────────
+    try:
+        import sqlite3
+        from datetime import datetime, timezone
+        from pipeline.config import DATASETS_INDEX_DB
+
+        conn = sqlite3.connect(str(DATASETS_INDEX_DB))
+        cursor = conn.cursor()
+        # Ensure uploads table exists (in case DB was created before this feature)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS uploads (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            dataset_name TEXT NOT NULL,
+            topic_title TEXT,
+            youtube_video_id TEXT,
+            youtube_url TEXT,
+            video_type TEXT DEFAULT 'short',
+            uploaded_at TEXT NOT NULL
+        )
+        """)
+
+        now_str = datetime.now(timezone.utc).isoformat()
+        dataset_name = topic_info.get("dataset_name", "unknown")
+
+        # Record Short upload
+        short_url = urls.get("short_url", "")
+        short_vid = short_url.split("/")[-1] if short_url else ""
+        cursor.execute(
+            "INSERT INTO uploads (dataset_name, topic_title, youtube_video_id, youtube_url, video_type, uploaded_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (dataset_name, topic_info.get("topic", ""), short_vid, short_url, "short", now_str)
+        )
+
+        # Record Long-form upload if present
+        long_url = urls.get("long_form_url", "")
+        if long_url and long_url != "Skipped":
+            long_vid = long_url.split("=")[-1] if "=" in long_url else long_url.split("/")[-1]
+            cursor.execute(
+                "INSERT INTO uploads (dataset_name, topic_title, youtube_video_id, youtube_url, video_type, uploaded_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (dataset_name, topic_info.get("topic", ""), long_vid, long_url, "long", now_str)
+            )
+
+        conn.commit()
+        conn.close()
+        print(f"[main] ✅ Recorded upload for dataset '{dataset_name}' — will not be reused.")
+    except Exception as e:
+        print(f"[main] ⚠️  Failed to record upload (non-fatal): {e}")
+
     print("\n" + "=" * 60)
     print("✅ Pipeline completed successfully!")
     if long_path:

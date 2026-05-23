@@ -76,9 +76,22 @@ def init_db() -> sqlite3.Connection:
         last_indexed TEXT
     )
     """)
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS uploads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        dataset_name TEXT NOT NULL,
+        topic_title TEXT,
+        youtube_video_id TEXT,
+        youtube_url TEXT,
+        video_type TEXT DEFAULT 'short',
+        uploaded_at TEXT NOT NULL
+    )
+    """)
     
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_is_valid ON datasets(is_valid)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_name ON datasets(name)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_uploads_dataset ON uploads(dataset_name)")
     conn.commit()
     return conn
 
