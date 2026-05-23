@@ -967,5 +967,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-23T19:22:37.559428+00:00",
+    "topic": "The Unseen Victims: Unmasking the World's Child Homicide Hotspots",
+    "dataset_url": "https://ourworldindata.org/grapher/child-homicide-rate.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2003,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/tOWJYfAgWME",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
