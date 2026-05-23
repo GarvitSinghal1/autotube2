@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 
-def find_extreme_segment(df_yearly: pd.DataFrame) -> dict:
+def find_extreme_segment(df_yearly: pd.DataFrame, topic_info: dict) -> dict:
     """Analyze yearly data to find the most dramatic time window.
 
     "Most dramatic" is determined by:
@@ -20,6 +20,7 @@ def find_extreme_segment(df_yearly: pd.DataFrame) -> dict:
 
     Args:
         df_yearly: DataFrame with columns [date, entity, value].
+        topic_info: Topic metadata context.
 
     Returns:
         Dict with keys: start_year, end_year, reason, hook
@@ -36,7 +37,7 @@ def find_extreme_segment(df_yearly: pd.DataFrame) -> dict:
             "start_year": int(years[0]),
             "end_year": int(years[-1]),
             "reason": "Full dataset span used (limited data)",
-            "hook": f"What changed from {years[0]} to {years[-1]}? The answer will surprise you.",
+            "hook": f"What changed from {years[0]} to {years[-1]}?",
         }
 
     # --- Build rank matrix ---
@@ -75,7 +76,8 @@ def find_extreme_segment(df_yearly: pd.DataFrame) -> dict:
     start_year, end_year = best_window
 
     # --- Generate hook ---
-    hook = _generate_hook(df_yearly, rank_data, start_year, end_year)
+    reasons_list = [r.strip() for r in best_reason.split(";") if r.strip()]
+    hook = _generate_hook(df_yearly, rank_data, start_year, end_year, topic_info, reasons_list)
 
     result = {
         "start_year": int(start_year),
@@ -185,18 +187,16 @@ def _generate_hook(
     rank_data: dict,
     start_year: int,
     end_year: int,
+    topic_info: dict,
+    reasons_list: list[str]
 ) -> str:
-    """Generate a compelling hook line for the Short.
+    """Generate a context-aware hook using Gemini (with rule-based fallback)."""
+    # 1. Try to generate with Gemini
+    hook = _generate_hook_with_gemini(df_yearly, start_year, end_year, topic_info, reasons_list)
+    if hook:
+        return hook
 
-    Args:
-        df_yearly: Full yearly DataFrame.
-        rank_data: Rank data per year.
-        start_year: Start of extreme segment.
-        end_year: End of extreme segment.
-
-    Returns:
-        Hook string for display at the start of the Short.
-    """
+    # 2. Fallback to generic but safe rule-based hook
     span = end_year - start_year
     start_ranks = rank_data.get(start_year, {})
     end_ranks = rank_data.get(end_year, {})
@@ -207,46 +207,75 @@ def _generate_hook(
 
     for entity, end_rank in end_ranks.items():
         start_rank = start_ranks.get(entity, 99)
-        delta = start_rank - end_rank  # positive means improvement
+        delta = start_rank - end_rank
         if delta > best_climb_delta and end_rank <= 5:
             best_climb_delta = delta
             best_climb = entity
 
     if best_climb and best_climb_delta >= 3:
         return (
-            f"In just {span} years, {best_climb} went from "
+            f"In just {span} years, {best_climb} rose from "
             f"#{start_ranks.get(best_climb, '?')} to "
-            f"#{end_ranks[best_climb]}. Nobody saw it coming."
+            f"#{end_ranks[best_climb]}."
         )
 
-    # Find the entity with biggest percentage growth
-    biggest_growth_entity = None
-    biggest_growth_pct = 0
+    return f"How the world changed from {start_year} to {end_year}."
 
-    top_end = sorted(end_ranks.items(), key=lambda x: x[1])[:5]
-    for entity, _ in top_end:
-        start_val = df_yearly[
-            (df_yearly["date"].dt.year == start_year) &
-            (df_yearly["entity"] == entity)
-        ]["value"]
-        end_val = df_yearly[
-            (df_yearly["date"].dt.year == end_year) &
-            (df_yearly["entity"] == entity)
-        ]["value"]
 
-        if not start_val.empty and not end_val.empty:
-            sv = start_val.iloc[0]
-            ev = end_val.iloc[0]
-            if sv > 0:
-                pct = (ev - sv) / sv * 100
-                if pct > biggest_growth_pct:
-                    biggest_growth_pct = pct
-                    biggest_growth_entity = entity
+def _generate_hook_with_gemini(
+    df_yearly: pd.DataFrame,
+    start_year: int,
+    end_year: int,
+    topic_info: dict,
+    reasons_list: list[str]
+) -> str:
+    """Use Gemini to generate a highly compelling, dramatic, and context-aware hook for the video intro."""
+    from pipeline.modules.gemini_helper import build_gemini_client, generate_content_with_retry
+    from pipeline.config import GEMINI_MODEL
+    from google.genai import types
+    import json
+    
+    try:
+        client = build_gemini_client()
+    except Exception as e:
+        print(f"[analyzer] Failed to build Gemini client: {e}")
+        return ""
+    
+    topic_title = topic_info.get("topic", "Data Visualization")
+    topic_desc = topic_info.get("description", "")
+    short_unit = topic_info.get("short_unit", "")
+    
+    prompt = f"""You are a viral YouTube Shorts producer. We are making a vertical bar chart race video.
+Topic Title: {topic_title}
+Description: {topic_desc}
+Unit: {short_unit}
+Time window: {start_year} to {end_year}
 
-    if biggest_growth_entity and biggest_growth_pct > 100:
-        return (
-            f"{biggest_growth_entity} grew {biggest_growth_pct:.0f}% in {span} years. "
-            f"Watch what happened."
+Significant data highlights in this window:
+{chr(10).join('- ' + r for r in reasons_list if r)}
+
+Your task is to create a compelling, punchy, context-aware HOOK (maximum 85 characters, ~10-14 words) to display on the video's opening intro card.
+The hook must capture the viewer's attention instantly, highlight a key shift or theme, and respect the tone of the topic (e.g., use a serious/sober tone for tragedy/suicide/death/conflict data, and an exciting/dramatic tone for space/technology/sports data).
+
+Rules:
+1. Must be a single short sentence.
+2. Keep it under 85 characters so it fits on a single mobile screen overlay without wrapping too much.
+3. Do not mention chart terms (e.g., "bar chart", "data", "visualization", "axis"). Speak about the real-world topic.
+4. Return ONLY a JSON object:
+{{"hook": "your compelling hook here"}}
+"""
+    try:
+        response = generate_content_with_retry(
+            client=client,
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.4,
+            ),
         )
-
-    return f"From {start_year} to {end_year} — everything changed. Watch how."
+        res = json.loads(response.text.strip())
+        return res.get("hook", "").strip()
+    except Exception as e:
+        print(f"[analyzer] Gemini hook generation failed: {e}. Using fallback.")
+        return ""

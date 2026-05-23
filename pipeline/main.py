@@ -110,7 +110,7 @@ def _execute_steps(logger: PipelineLogger) -> None:
     print("=" * 60)
     try:
         from pipeline.modules.analyzer import find_extreme_segment
-        extreme_segment = find_extreme_segment(df_yearly)
+        extreme_segment = find_extreme_segment(df_yearly, topic_info)
         state["extreme_segment"] = extreme_segment
         logger.set_field("extreme_segment", {
             "start_year": extreme_segment["start_year"],

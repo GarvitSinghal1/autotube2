@@ -121,12 +121,26 @@ def clean_dataframe(
     topic_info["short_unit"] = unit_info.get("short_unit", "")
     print(f"[cleaner] Detected units: full='{topic_info['full_unit']}', short='{topic_info['short_unit']}'")
 
-    # Remove entities that are aggregates (e.g. "World", "Global")
+    # Remove entities that are aggregates (e.g. "World", "Global", continents, regions)
     aggregate_names = {
         "world", "global", "total", "all", "aggregate", "sum",
         "international", "other", "unknown", "unspecified",
+        # continents
+        "africa", "asia", "europe", "north america", "south america", "oceania", "antarctica",
+        # regional / global groups
+        "european union", "americas", "european region", "western pacific", "south-east asia",
+        "eastern mediterranean", "pan america", "latin america & caribbean", "sub-saharan africa",
+        "east asia & pacific", "europe & central asia", "middle east & north africa", "south asia",
+        "latin america", "caribbean", "middle east", "north africa", "central america", "western europe",
+        "eastern europe", "southern europe", "northern europe", "northern america", "high income",
+        "low income", "lower middle income", "upper middle income", "high-income", "low-income",
+        "lower-middle-income", "upper-middle-income", "g20", "oecd", "asean", "eu", "brics",
+        "east asia and pacific", "europe and central asia", "latin america and caribbean",
+        "middle east and north africa", "sub-saharan africa", "high-income countries",
+        "low-income countries", "lower-middle-income countries", "upper-middle-income countries",
+        "world bank", "imf", "un", "unesco", "who", "wto", "nato", "unicef", "undp", "unhcr",
     }
-    df_clean = df_clean[~df_clean["entity"].str.lower().isin(aggregate_names)]
+    df_clean = df_clean[~df_clean["entity"].str.lower().str.strip().isin(aggregate_names)]
 
     # --- Step 7: Validate data span ---
     year_min = df_clean["date"].dt.year.min()

@@ -871,5 +871,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: Unable to find the server at oauth2.googleapis.com"
+  },
+  {
+    "timestamp": "2026-05-23T08:05:10.235718+00:00",
+    "topic": "The Hidden Cost of War: The Shocking Truth About Civilian Deaths",
+    "dataset_url": "https://ourworldindata.org/grapher/civilian-and-combatant-deaths-in-armed-conflicts.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2012,
+      "end_year": 2024
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": null
   }
 ]

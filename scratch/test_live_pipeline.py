@@ -38,7 +38,7 @@ def run_test():
     
     # 4. Find Extreme Segment
     print("\n[*] Finding extreme segment...")
-    extreme_segment = find_extreme_segment(df_yearly)
+    extreme_segment = find_extreme_segment(df_yearly, topic_info)
     print(f"[+] Segment range: {extreme_segment['start_year']} to {extreme_segment['end_year']}")
     print(f"[+] Hook: {extreme_segment['hook']}")
     
