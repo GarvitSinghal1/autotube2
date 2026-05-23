@@ -41,6 +41,7 @@ _FALLBACK_OWID_FOLDERS = [
     "Child Mortality - Gapminder",
     "Population - UN",
     "Urban population - UN",
+    "Nuclear weapons - FAS",
 ]
 
 # Keyword filters to guarantee interesting topics on YouTube
@@ -90,7 +91,7 @@ def _get_valid_datasets_from_db() -> list[dict]:
         conn = sqlite3.connect(str(DATASETS_INDEX_DB))
         cursor = conn.cursor()
         # Query valid datasets
-        cursor.execute("SELECT name, path, csv_url, entity_col, date_col, value_col, start_year, end_year, span_years, entity_count FROM datasets WHERE is_valid = 1 AND end_year >= 2023")
+        cursor.execute("SELECT name, path, csv_url, entity_col, date_col, value_col, start_year, end_year, span_years, entity_count FROM datasets WHERE is_valid = 1 AND end_year >= 2022")
         rows = cursor.fetchall()
         conn.close()
         

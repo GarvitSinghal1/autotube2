@@ -331,8 +331,8 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
             error_reason = f"Span is too short ({span_years} years, min {MIN_YEARS_REQUIRED})."
         elif entity_count < TOP_N_ENTITIES:
             error_reason = f"Too few unique entities ({entity_count}, min {TOP_N_ENTITIES})."
-        elif end_year is None or end_year < 2023:
-            error_reason = f"Dataset ends too early ({end_year}, must be >= 2023)."
+        elif end_year is None or end_year < 2022:
+            error_reason = f"Dataset ends too early ({end_year}, must be >= 2022)."
         else:
             is_valid = 1
 
