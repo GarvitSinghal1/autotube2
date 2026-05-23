@@ -919,5 +919,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-23T13:54:31.645334+00:00",
+    "topic": "The Shocking Truth: Who Really Dies in War?",
+    "dataset_url": "https://ourworldindata.org/grapher/civilian-and-combatant-deaths-in-armed-conflicts-based-on-where-they-occurred.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2011,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/gEnkqiVs4GI",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
