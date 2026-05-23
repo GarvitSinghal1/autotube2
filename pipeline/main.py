@@ -70,6 +70,8 @@ def _execute_steps(logger: PipelineLogger) -> None:
             df_monthly, df_yearly = clean_dataframe(df_raw, topic_info)
             state["df_monthly"] = df_monthly
             state["df_yearly"] = df_yearly
+            topic_info["start_year"] = int(df_yearly["date"].dt.year.min())
+            topic_info["end_year"] = int(df_yearly["date"].dt.year.max())
 
             logger.mark_step("topic", "pass")
             logger.mark_step("fetcher", "pass")

@@ -36,7 +36,7 @@ def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
 Topic: {topic_info.get('topic', '')}
 Description: {topic_info.get('description', '')}
 Data source: {topic_info.get('source', '')}
-Full date range: from the dataset
+Full date range: {topic_info.get('start_year', '')} to {topic_info.get('end_year', '')}
 Extreme segment: {extreme_segment.get('start_year', '')} to {extreme_segment.get('end_year', '')}
 Extreme reason: {extreme_segment.get('reason', '')}
 Hook: {extreme_segment.get('hook', '')}
