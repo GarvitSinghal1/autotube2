@@ -1,5 +1,5 @@
 """
-index_datasets.py — Indexes and validates all CSV files from owid/owid-datasets into a local SQLite database.
+index_datasets.py — Indexes and validates all CSV files from Our World in Data sitemap into a local SQLite database.
 
 Supports incremental caching based on file size, handles wide/long formats, and uses HTTP range
 requests for large datasets to keep indexing extremely fast.
@@ -272,18 +272,44 @@ def process_large_csv_range_ends(
 
 def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
     """Helper to download and validate a single dataset."""
+    name = item["name"]
     path = item["path"]
-    size_bytes = item.get("size", 0)
-    name = Path(path).parent.name
+    csv_url = item["csv_url"]
     
+    size_bytes = 0
+    try:
+        resp_head = requests.head(csv_url, headers={"User-Agent": "AutoTube2-Pipeline/1.0"}, timeout=10, verify=False)
+        if resp_head.status_code == 200:
+            size_bytes = int(resp_head.headers.get("Content-Length", 0))
+        else:
+            # Fallback GET stream to get headers
+            resp_get = requests.get(csv_url, headers={"User-Agent": "AutoTube2-Pipeline/1.0"}, stream=True, timeout=10, verify=False)
+            size_bytes = int(resp_get.headers.get("Content-Length", 0))
+            resp_get.close()
+    except Exception as e:
+        return {
+            "name": name,
+            "path": path,
+            "csv_url": csv_url,
+            "size_bytes": 0,
+            "columns_json": "[]",
+            "entity_col": None,
+            "date_col": None,
+            "value_col": None,
+            "start_year": None,
+            "end_year": None,
+            "span_years": 0,
+            "entity_count": 0,
+            "is_valid": 0,
+            "error_reason": f"Connection/HEAD failed: {str(e)}",
+        }
+
     # Check cache
     if name in cache:
         cached_size, cached_valid = cache[name]
-        if cached_size == size_bytes and cached_valid is not None:
+        if size_bytes > 0 and cached_size == size_bytes and cached_valid is not None:
             return None  # skipped
 
-    csv_url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/{urllib.parse.quote(path)}"
-    
     date_col = entity_col = value_col = None
     start_year = end_year = span_years = entity_count = None
     is_valid = 0
@@ -292,7 +318,7 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
     
     try:
         # Optimize based on file size
-        if size_bytes <= 256 * 1024:
+        if size_bytes > 0 and size_bytes <= 256 * 1024:
             # Small file: fetch in full
             r = requests.get(csv_url, headers={"User-Agent": "AutoTube2-Pipeline/1.0"}, timeout=15, verify=False)
             if r.status_code != 200:
@@ -300,7 +326,7 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
             df = pd.read_csv(io.StringIO(r.text))
             cols_list = list(df.columns)
             date_col, entity_col, value_col, start_year, end_year, entity_count = process_csv_dataframe(df)
-        else:
+        elif size_bytes > 256 * 1024:
             # Large file: fetch range chunks
             date_col, entity_col, value_col, start_year, end_year, entity_count = process_large_csv_range_ends(
                 csv_url, size_bytes
@@ -312,11 +338,19 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
                 timeout=15,
                 verify=False
             )
-
             if r_head.status_code in (200, 206):
                 head_lines = r_head.text.splitlines()
                 if head_lines:
                     cols_list = list(pd.read_csv(io.StringIO("\n".join(head_lines[:-1]))).columns)
+        else:
+            # size_bytes is 0 or negative: fetch in full
+            r = requests.get(csv_url, headers={"User-Agent": "AutoTube2-Pipeline/1.0"}, timeout=15, verify=False)
+            if r.status_code != 200:
+                raise RuntimeError(f"HTTP {r.status_code} fetching CSV.")
+            size_bytes = len(r.content)
+            df = pd.read_csv(io.StringIO(r.text))
+            cols_list = list(df.columns)
+            date_col, entity_col, value_col, start_year, end_year, entity_count = process_csv_dataframe(df)
 
         # Check spans & validity
         if start_year is not None and end_year is not None:
@@ -359,47 +393,66 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
 
 
 def index_all_datasets() -> None:
-    """Fetch tree, process CSVs concurrently, validate and save to SQLite db."""
+    """Fetch sitemap from OWID, filter graphers, validate and save to SQLite db."""
     import concurrent.futures
     print("[indexer] Initializing SQLite database...")
     conn = init_db()
     cursor = conn.cursor()
-    
-    # 1. Fetch Git Trees list from GitHub API
-    print("[indexer] Fetching repository tree from GitHub API...")
-    url = "https://api.github.com/repos/owid/owid-datasets/git/trees/master?recursive=1"
-    headers = {"User-Agent": "AutoTube2-Pipeline/1.0"}
-    token = os.environ.get("GITHUB_TOKEN")
-    if token:
-        headers["Authorization"] = f"token {token}"
-        print("[indexer] Using GITHUB_TOKEN authentication.")
-        
-    try:
-        resp = requests.get(url, headers=headers, timeout=20, verify=False)
-        if resp.status_code == 401 and token:
-            print("[indexer] GITHUB_TOKEN authentication failed (401). Retrying without token...")
-            headers_no_token = {"User-Agent": "AutoTube2-Pipeline/1.0"}
-            resp = requests.get(url, headers=headers_no_token, timeout=20, verify=False)
-            
-        if resp.status_code != 200:
-            print(f"[indexer] Error fetching repo tree: HTTP {resp.status_code} - {resp.text[:300]}")
-            return
-        
-        tree_data = resp.json().get("tree", [])
 
+    # Clear legacy datasets referring to GitHub raw URLs
+    print("[indexer] Clearing legacy github raw dataset records...")
+    cursor.execute("DELETE FROM datasets WHERE csv_url LIKE '%githubusercontent.com%'")
+    conn.commit()
+
+    # Fetch sitemap
+    print("[indexer] Fetching sitemap from Our World in Data...")
+    sitemap_url = "https://ourworldindata.org/sitemap.xml"
+    try:
+        resp = requests.get(sitemap_url, headers={"User-Agent": "AutoTube2-Pipeline/1.0"}, timeout=20, verify=False)
+        if resp.status_code != 200:
+            print(f"[indexer] Error fetching sitemap: HTTP {resp.status_code}")
+            conn.close()
+            return
+        sitemap_content = resp.content
     except Exception as e:
-        print(f"[indexer] Request failed: {e}")
+        print(f"[indexer] Sitemap request failed: {e}")
+        conn.close()
         return
 
-    # Filter CSV files in datasets/ directory
-    csv_items = [
-        item for item in tree_data
-        if item.get("type") == "blob"
-        and item.get("path", "").startswith("datasets/")
-        and item.get("path", "").endswith(".csv")
-    ]
+    # Parse XML to find all locations containing "/grapher/"
+    import xml.etree.ElementTree as ET
+    try:
+        root = ET.fromstring(sitemap_content)
+        ns = {'ns': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+        locs = [elem.text for elem in root.findall('.//ns:loc', ns)]
+    except Exception as e:
+        print(f"[indexer] Failed to parse XML: {e}. Falling back to regex...")
+        locs = re.findall(r'<loc>(https://ourworldindata.org/[^<]+)</loc>', sitemap_content.decode('utf-8', errors='ignore'))
+
+    grapher_urls = [url for url in locs if "/grapher/" in url]
+    print(f"[indexer] Found {len(grapher_urls)} grapher links in sitemap.")
+
+    from pipeline.modules.topic import INTERESTING_KEYWORDS, BORING_KEYWORDS
+
+    csv_items = []
+    for url in grapher_urls:
+        slug = url.split("/grapher/")[-1].strip()
+        if not slug:
+            continue
+        slug_clean = slug.replace("-", " ").replace("_", " ").lower()
+        has_interesting = any(w in slug_clean for w in INTERESTING_KEYWORDS)
+        has_boring = any(w in slug_clean for w in BORING_KEYWORDS)
+        if has_interesting and not has_boring:
+            name = slug.replace("-", " ").replace("_", " ").title()
+            csv_items.append({
+                "slug": slug,
+                "name": name,
+                "csv_url": f"https://ourworldindata.org/grapher/{slug}.csv",
+                "path": f"grapher/{slug}",
+            })
+
     total_csvs = len(csv_items)
-    print(f"[indexer] Found {total_csvs} CSV datasets in the repository tree.")
+    print(f"[indexer] Filtered to {total_csvs} interesting candidate datasets.")
 
     # 2. Get cached datasets
     cache = get_cached_datasets(conn)
@@ -439,7 +492,7 @@ def index_all_datasets() -> None:
                     status_str = f"VALID (entities={res['entity_count']}, span={res['span_years']})" if res["is_valid"] else f"INVALID ({res['error_reason']})"
                     print(f"[{skipped + updated}/{total_csvs}] Processed '{res['name']}' -> {status_str}")
             except Exception as e:
-                print(f"[indexer] Thread failed for item {item.get('path')}: {e}")
+                print(f"[indexer] Thread failed for item {item.get('name')}: {e}")
 
     print(f"\n[indexer] Complete. Skipped (unchanged): {skipped}, Updated/Added: {updated}")
     
