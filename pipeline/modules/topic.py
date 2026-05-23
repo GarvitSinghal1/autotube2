@@ -39,18 +39,8 @@ You MUST respond with ONLY a valid JSON object, no markdown, no explanation:
 
 _FALLBACK_OWID_FOLDERS = [
     "Child Mortality - Gapminder",
-    "CO2 emissions - Global Carbon Project",
-    "Economic growth - Maddison Project Database",
-    "Energy consumption by source - BP",
-    "Life expectancy - WHO",
-    "Military Expenditure - SIPRI",
     "Population - UN",
     "Urban population - UN",
-    "Internet users - World Bank",
-    "Homicide rates - UNODC",
-    "Nuclear weapons - FAS",
-    "Renewable Energy - BP",
-    "Space exploration - NASA",
 ]
 
 # Keyword filters to guarantee interesting topics on YouTube
@@ -67,7 +57,9 @@ INTERESTING_KEYWORDS = [
     "media coverage", "causes of death",
     "fertility", "births",
     "iq data", "intelligence",
-    "plastic waste"
+    "plastic waste",
+    # Demographic & global growth additions
+    "population", "urbanization", "city", "mortality"
 ]
 
 BORING_KEYWORDS = [
@@ -98,7 +90,7 @@ def _get_valid_datasets_from_db() -> list[dict]:
         conn = sqlite3.connect(str(DATASETS_INDEX_DB))
         cursor = conn.cursor()
         # Query valid datasets
-        cursor.execute("SELECT name, path, csv_url, entity_col, date_col, value_col, start_year, end_year, span_years, entity_count FROM datasets WHERE is_valid = 1")
+        cursor.execute("SELECT name, path, csv_url, entity_col, date_col, value_col, start_year, end_year, span_years, entity_count FROM datasets WHERE is_valid = 1 AND end_year >= 2023")
         rows = cursor.fetchall()
         conn.close()
         
