@@ -29,7 +29,7 @@ from pipeline.modules.renderer_long import (
 
 # Short-form constants
 SHORT_FRAMES_PER_STEP = 15   # fewer frames for faster pacing
-SHORT_INTRO_FRAMES = 90      # same intro: 45 static + 45 animated
+SHORT_INTRO_FRAMES = 36      # 1.2s intro: 18 static + 18 animated
 
 
 def render_short(
@@ -173,8 +173,8 @@ def render_short(
             sorted(next_vals.keys(), key=lambda k: next_vals[k], reverse=True)
         )}
 
-    # Hold last frame for 2 seconds
-    for _ in range(FPS * 2):
+    # Hold last frame for 1 second (cleaner loop transition)
+    for _ in range(FPS * 1):
         _draw_short_chart_frame(ax, fig, entities_data, title, source, date_label,
                                 FRAMES_SHORT_DIR, frame_number, topic_info)
         frame_number += 1
