@@ -46,10 +46,10 @@ jobs:
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: python -m pipeline.main
 
-      - name: Commit updated run log
+      - name: Commit updated run log and database
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add logs/run_log.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "Update run log [skip ci]"
+          git add logs/run_log.json pipeline/datasets_index.db
+          git diff --quiet && git diff --staged --quiet || git commit -m "Update run log and database [skip ci]"
           git push
