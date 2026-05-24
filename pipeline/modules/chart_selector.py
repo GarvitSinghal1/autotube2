@@ -74,9 +74,9 @@ def select_chart_type(df_yearly: pd.DataFrame, topic_info: dict) -> str:
     else:
         chart_type = "bar_chart_race"  # safe default
 
-    # Verify with Gemini if we have a tiebreaker situation
-    if n_entities > 5 and is_geo:
-        chart_type = _gemini_tiebreak(df_yearly, topic_info, chart_type)
+    # Skip Gemini tiebreaker to save API calls, default to heuristic rule
+    # (especially since renderer_short only implements bar_chart_race anyway)
+    pass
 
     print(f"[chart_selector] Selected: {chart_type}")
     return chart_type

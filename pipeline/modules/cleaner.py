@@ -9,6 +9,8 @@ Both have columns: date (datetime), entity (str), value (float).
 """
 
 import re
+import json
+import time
 from typing import Optional
 
 import numpy as np
@@ -62,10 +64,21 @@ def clean_dataframe(
     print(f"[cleaner] Raw shape: {df.shape}")
     print(f"[cleaner] Columns: {list(df.columns)}")
 
-    # --- Step 1: Try to detect column roles automatically ---
-    date_col, entity_col, value_col = auto_detect_columns(df)
+    # --- Step 1: Try to detect column roles from topic_info or automatically ---
+    date_col = topic_info.get("date_col")
+    entity_col = topic_info.get("entity_col")
+    value_col = topic_info.get("value_col")
 
-    # --- Step 2: If auto-detection fails, ask Gemini ---
+    if not all([date_col, entity_col, value_col]):
+        date_col_auto, entity_col_auto, value_col_auto = auto_detect_columns(df)
+        if not date_col:
+            date_col = date_col_auto
+        if not entity_col:
+            entity_col = entity_col_auto
+        if not value_col:
+            value_col = value_col_auto
+
+    # --- Step 2: If detection still incomplete, ask Gemini ---
     if not all([date_col, entity_col, value_col]):
         print("[cleaner] Auto-detection incomplete, asking Gemini for column mapping...")
         date_col, entity_col, value_col = _gemini_detect_columns(df, topic_info)
@@ -115,11 +128,19 @@ def clean_dataframe(
     entity_mapping = _clean_all_entity_names_with_gemini(unique_entities, topic_info)
     df_clean["entity"] = df_clean["entity"].map(entity_mapping)
 
-    # Detect dataset units using Gemini
-    unit_info = _gemini_detect_unit(df, topic_info)
-    topic_info["full_unit"] = unit_info.get("full_unit", "")
-    topic_info["short_unit"] = unit_info.get("short_unit", "")
-    print(f"[cleaner] Detected units: full='{topic_info['full_unit']}', short='{topic_info['short_unit']}'")
+    # Detect dataset units using suggested units or fall back to Gemini
+    suggested_full = topic_info.get("suggested_full_unit", "").strip()
+    suggested_short = topic_info.get("suggested_short_unit", "").strip()
+
+    if suggested_full and suggested_short:
+        topic_info["full_unit"] = suggested_full
+        topic_info["short_unit"] = suggested_short
+        print(f"[cleaner] Using suggested units: full='{suggested_full}', short='{suggested_short}'")
+    else:
+        unit_info = _gemini_detect_unit(df, topic_info)
+        topic_info["full_unit"] = unit_info.get("full_unit", "")
+        topic_info["short_unit"] = unit_info.get("short_unit", "")
+    print(f"[cleaner] Final units: full='{topic_info['full_unit']}', short='{topic_info['short_unit']}'")
 
     # Remove entities that are aggregates (e.g. "World", "Global", continents, regions)
     aggregate_names = {
@@ -478,7 +499,10 @@ def _clean_all_entity_names_with_gemini(entities: list[str], topic_info: dict) -
 
     needs_cleaning = False
     for name in entities:
-        if "_" in name or name.islower() or "number_" in name.lower() or name.replace(" ", "").isalnum() == False:
+        # Check if the name looks like a cryptic/machine-readable identifier.
+        # Clean country/entity names can contain spaces, hyphens, periods, parentheses, apostrophes, and commas.
+        clean_name = name.strip()
+        if "_" in clean_name or clean_name.startswith("number_") or (clean_name.islower() and len(clean_name) > 3):
             needs_cleaning = True
             break
 

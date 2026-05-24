@@ -15,19 +15,12 @@ from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
 
 def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
-    """Generate metadata for both long-form and Short videos.
+    """Generate metadata for both long-form and Short videos."""
+    # Check if metadata was pre-generated during extreme segment analysis to save API calls
+    if "metadata" in extreme_segment and extreme_segment["metadata"]:
+        print("[metadata] Using pre-calculated metadata from extreme segment analysis.")
+        return extreme_segment["metadata"]
 
-    Args:
-        topic_info: Dict with topic, description, source, url.
-        extreme_segment: Dict with start_year, end_year, reason, hook.
-
-    Returns:
-        Dict with keys 'long_form' and 'short', each containing
-        title, description, and tags.
-
-    Raises:
-        RuntimeError: If Gemini fails to generate valid metadata.
-    """
     from pipeline.modules.gemini_helper import build_gemini_client
     client = build_gemini_client()
 

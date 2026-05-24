@@ -195,6 +195,7 @@ def process_large_csv_range_ends(
     )
     if resp_start.status_code not in (200, 206):
         raise RuntimeError(f"Failed to fetch first chunk. HTTP Code: {resp_start.status_code}")
+    resp_start.encoding = "utf-8"
     start_text = resp_start.text
 
     # 2. Fetch last chunk
@@ -208,6 +209,7 @@ def process_large_csv_range_ends(
 
     if resp_end.status_code not in (200, 206):
         raise RuntimeError(f"Failed to fetch last chunk. HTTP Code: {resp_end.status_code}")
+    resp_end.encoding = "utf-8"
     end_text = resp_end.text
 
     start_lines = start_text.splitlines()
@@ -350,6 +352,7 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
             r = requests.get(csv_url, headers={"User-Agent": "AutoTube2-Pipeline/1.0"}, timeout=15, verify=False)
             if r.status_code != 200:
                 raise RuntimeError(f"HTTP {r.status_code} fetching CSV.")
+            r.encoding = "utf-8"
             df = pd.read_csv(io.StringIO(r.text))
             cols_list = list(df.columns)
             date_col, entity_col, value_col, start_year, end_year, entity_count = process_csv_dataframe(df)
@@ -366,6 +369,7 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
                 verify=False
             )
             if r_head.status_code in (200, 206):
+                r_head.encoding = "utf-8"
                 head_lines = r_head.text.splitlines()
                 if head_lines:
                     cols_list = list(pd.read_csv(io.StringIO("\n".join(head_lines[:-1]))).columns)
@@ -375,6 +379,7 @@ def process_single_dataset(item: dict, cache: dict) -> Optional[dict]:
             if r.status_code != 200:
                 raise RuntimeError(f"HTTP {r.status_code} fetching CSV.")
             size_bytes = len(r.content)
+            r.encoding = "utf-8"
             df = pd.read_csv(io.StringIO(r.text))
             cols_list = list(df.columns)
             date_col, entity_col, value_col, start_year, end_year, entity_count = process_csv_dataframe(df)

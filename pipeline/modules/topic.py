@@ -28,12 +28,17 @@ CRITICAL GUIDELINES:
 1. Avoid dry academic, political development, or clinical metrics (e.g. government spending, energy efficiency, Gini coefficients, pollution rates, standard disease prevalence/treatment rates).
 2. Prioritize high-retention concepts: global conflicts, weapon/nuclear proliferation, space exploration milestones, lifestyles/addictions (alcohol, cigarette sales), historical crime/suicide trends, natural disasters, major epidemics/plagues, or massive wealth concentration (billionaires).
 3. The title ("topic") MUST be an engaging, clickable YouTube hook (e.g., use formats like "The Rise and Fall of...", "The Deadliest...", "The Shocking Truth About...", "Inside the...") rather than repeating the dry dataset name.
+4. Based on your knowledge of the selected dataset, suggest the unit of measurement:
+   - suggested_full_unit: the complete, formal unit name (e.g., "liters of pure alcohol per capita", "number of nuclear weapons", "metric tons per capita")
+   - suggested_short_unit: a very short version (1 word or abbreviation/symbol, e.g., "liters", "weapons", "tons", "%", "$") to display next to numbers on the chart.
 
 You MUST respond with ONLY a valid JSON object, no markdown, no explanation:
 {
   "dataset_name": "the exact name you chose from the list provided",
   "topic": "a catchy, dramatic YouTube video hook title",
-  "description": "one sentence explaining why this data is highly compelling or shocking to watch"
+  "description": "one sentence explaining why this data is highly compelling or shocking to watch",
+  "suggested_full_unit": "complete formal unit name",
+  "suggested_short_unit": "short abbreviation/symbol/word"
 }
 """
 
@@ -219,12 +224,16 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         dataset_name: DatasetEnum
         topic: str
         description: str
+        suggested_full_unit: str
+        suggested_short_unit: str
 
     # 3. Ask Gemini to choose
     from pipeline.modules.gemini_helper import generate_content_with_retry
     chosen_name = None
     topic_title = None
     topic_desc = None
+    suggested_full_unit = ""
+    suggested_short_unit = ""
     
     try:
         response = generate_content_with_retry(
@@ -248,6 +257,8 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
             
         topic_title = result.get("topic")
         topic_desc = result.get("description")
+        suggested_full_unit = result.get("suggested_full_unit", "")
+        suggested_short_unit = result.get("suggested_short_unit", "")
     except Exception as e:
         print(f"[topic] Gemini selection failed: {e}. Falling back to default selection.")
 
@@ -257,11 +268,20 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         chosen_name = sample_names[0]
         topic_title = chosen_name
         topic_desc = "A fascinating dataset from Our World in Data."
+        suggested_full_unit = ""
+        suggested_short_unit = ""
         print(f"[topic] Gemini selected invalid dataset or failed, falling back to: {chosen_name}")
 
     # 4. Construct deterministic URL based on database details or fallback
+    entity_col = None
+    date_col = None
+    value_col = None
+    
     if chosen_name in dataset_map:
         url = dataset_map[chosen_name]["csv_url"]
+        entity_col = dataset_map[chosen_name]["entity_col"]
+        date_col = dataset_map[chosen_name]["date_col"]
+        value_col = dataset_map[chosen_name]["value_col"]
     else:
         encoded_name = urllib.parse.quote(chosen_name)
         url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/{encoded_name}/{encoded_name}.csv"
@@ -272,7 +292,12 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         "description": topic_desc,
         "source": "Our World in Data",
         "url": url,
-        "format": "csv"
+        "format": "csv",
+        "suggested_full_unit": suggested_full_unit,
+        "suggested_short_unit": suggested_short_unit,
+        "entity_col": entity_col,
+        "date_col": date_col,
+        "value_col": value_col
     }
 
     print(f"[topic] Selected Dataset: {chosen_name}")

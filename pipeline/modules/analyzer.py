@@ -75,20 +75,32 @@ def find_extreme_segment(df_yearly: pd.DataFrame, topic_info: dict) -> dict:
 
     start_year, end_year = best_window
 
-    # --- Generate hook ---
+    # --- Generate hook and metadata ---
     reasons_list = [r.strip() for r in best_reason.split(";") if r.strip()]
-    hook = _generate_hook(df_yearly, rank_data, start_year, end_year, topic_info, reasons_list)
+    hook_and_meta = _generate_hook_and_metadata(df_yearly, rank_data, start_year, end_year, topic_info, reasons_list)
 
     result = {
         "start_year": int(start_year),
         "end_year": int(end_year),
         "reason": best_reason,
-        "hook": hook,
+        "hook": hook_and_meta.get("hook", ""),
+        "metadata": {
+            "long_form": {
+                "title": hook_and_meta.get("long_title", ""),
+                "description": hook_and_meta.get("long_description", ""),
+                "tags": hook_and_meta.get("long_tags", [])
+            },
+            "short": {
+                "title": hook_and_meta.get("short_title", ""),
+                "description": hook_and_meta.get("short_description", ""),
+                "tags": hook_and_meta.get("short_tags", [])
+            }
+        }
     }
 
     print(f"[analyzer] Extreme segment: {start_year}–{end_year}")
     print(f"[analyzer] Reason: {best_reason}")
-    print(f"[analyzer] Hook: {hook}")
+    print(f"[analyzer] Hook: {result['hook']}")
 
     return result
 
@@ -178,25 +190,35 @@ def _score_window(
     # Build reason
     reasons = overtake_details[:3] + growth_details[:2]
     reason = "; ".join(reasons) if reasons else f"Significant changes from {start_yr} to {end_yr}"
-
     return total_score, reason
 
 
-def _generate_hook(
+def _generate_hook_and_metadata(
     df_yearly: pd.DataFrame,
     rank_data: dict,
     start_year: int,
     end_year: int,
     topic_info: dict,
     reasons_list: list[str]
-) -> str:
-    """Generate a context-aware hook using Gemini (with rule-based fallback)."""
-    # 1. Try to generate with Gemini
-    hook = _generate_hook_with_gemini(df_yearly, start_year, end_year, topic_info, reasons_list)
-    if hook:
-        return hook
+) -> dict:
+    """Generate both the video hook and the YouTube upload metadata using a single Gemini call."""
+    from pipeline.modules.gemini_helper import build_gemini_client, generate_content_with_retry
+    from pipeline.config import GEMINI_MODEL
+    from google.genai import types
+    from pydantic import BaseModel
+    import json
+    import re
 
-    # 2. Fallback to generic but safe rule-based hook
+    # 1. Setup fallback dict structure
+    topic_title = topic_info.get("topic", "Data Visualization")
+    source = topic_info.get("source", "Our World in Data")
+    clean_title = re.sub(r'[^\w\s]', '', topic_title)
+    tags = [t.lower() for t in clean_title.split() if len(t) > 3][:12]
+    if "data" not in tags:
+        tags.append("data")
+    if "visualization" not in tags:
+        tags.append("visualization")
+
     span = end_year - start_year
     start_ranks = rank_data.get(start_year, {})
     end_ranks = rank_data.get(end_year, {})
@@ -204,7 +226,6 @@ def _generate_hook(
     # Find the entity with the biggest rank improvement
     best_climb = None
     best_climb_delta = 0
-
     for entity, end_rank in end_ranks.items():
         start_rank = start_ranks.get(entity, 99)
         delta = start_rank - end_rank
@@ -213,57 +234,81 @@ def _generate_hook(
             best_climb = entity
 
     if best_climb and best_climb_delta >= 3:
-        return (
-            f"In just {span} years, {best_climb} rose from "
-            f"#{start_ranks.get(best_climb, '?')} to "
-            f"#{end_ranks[best_climb]}."
-        )
+        fallback_hook = f"In just {span} years, {best_climb} rose from #{start_ranks.get(best_climb, '?')} to #{end_ranks[best_climb]}."
+    elif reasons_list:
+        fallback_hook = reasons_list[0] + "."
+    else:
+        fallback_hook = f"How the world changed from {start_year} to {end_year}."
 
-    return f"How the world changed from {start_year} to {end_year}."
+    fallback_result = {
+        "hook": fallback_hook,
+        "long_title": f"How {topic_title} Changed Over Time ({topic_info.get('start_year', start_year)}-{topic_info.get('end_year', end_year)})",
+        "long_description": f"A comprehensive data visualization tracking {topic_title} from {topic_info.get('start_year', start_year)} to {topic_info.get('end_year', end_year)}.\n\nData source: {source}",
+        "long_tags": tags + ["chart race", "bar chart race", "statistics"],
+        "short_title": f"The Dramatic Shift in {topic_title} ({start_year}-{end_year}) #Shorts",
+        "short_description": f"Highlighting the most extreme changes in {topic_title} from {start_year} to {end_year}.",
+        "short_tags": tags + ["shorts", "trending", "history"]
+    }
 
+    # 2. Define schema for structured outputs
+    class CombinedOutputs(BaseModel):
+        hook: str
+        long_title: str
+        long_description: str
+        long_tags: list[str]
+        short_title: str
+        short_description: str
+        short_tags: list[str]
 
-def _generate_hook_with_gemini(
-    df_yearly: pd.DataFrame,
-    start_year: int,
-    end_year: int,
-    topic_info: dict,
-    reasons_list: list[str]
-) -> str:
-    """Use Gemini to generate a highly compelling, dramatic, and context-aware hook for the video intro."""
-    from pipeline.modules.gemini_helper import build_gemini_client, generate_content_with_retry
-    from pipeline.config import GEMINI_MODEL
-    from google.genai import types
-    import json
-    
+    # 3. Call Gemini
     try:
         client = build_gemini_client()
     except Exception as e:
-        print(f"[analyzer] Failed to build Gemini client: {e}")
-        return ""
-    
-    topic_title = topic_info.get("topic", "Data Visualization")
+        print(f"[analyzer] Failed to build Gemini client: {e}. Using fallback.")
+        return fallback_result
+
     topic_desc = topic_info.get("description", "")
     short_unit = topic_info.get("short_unit", "")
-    
-    prompt = f"""You are a viral YouTube Shorts producer. We are making a vertical bar chart race video.
-Topic Title: {topic_title}
-Description: {topic_desc}
-Unit: {short_unit}
-Time window: {start_year} to {end_year}
+    full_start = topic_info.get("start_year", start_year)
+    full_end = topic_info.get("end_year", end_year)
 
-Significant data highlights in this window:
+    prompt = f"""You are a viral YouTube video producer. We are creating two versions of a video about a dataset.
+    
+Dataset details:
+- Topic Title: {topic_title}
+- Description: {topic_desc}
+- Data source: {source}
+- Unit: {short_unit}
+- Full dataset date range: {full_start} to {full_end}
+
+We have detected the most dramatic/extreme segment of the data:
+- Time window: {start_year} to {end_year}
+- Significant data highlights in this window:
 {chr(10).join('- ' + r for r in reasons_list if r)}
 
-Your task is to create a compelling, punchy, context-aware HOOK (maximum 85 characters, ~10-14 words) to display on the video's opening intro card.
-The hook must capture the viewer's attention instantly, highlight a key shift or theme, and respect the tone of the topic (e.g., use a serious/sober tone for tragedy/suicide/death/conflict data, and an exciting/dramatic tone for space/technology/sports data).
+Your task is to generate the following elements:
 
-Rules:
-1. Must be a single short sentence.
-2. Keep it under 85 characters so it fits on a single mobile screen overlay without wrapping too much.
-3. Do not mention chart terms (e.g., "bar chart", "data", "visualization", "axis"). Speak about the real-world topic.
-4. Return ONLY a JSON object:
-{{"hook": "your compelling hook here"}}
+1. A video HOOK for the opening intro card:
+   - Must be a single short sentence (max 85 characters, ~10-14 words).
+   - Instant attention-grabber, highlighting a key shift or theme.
+   - Respect the tone of the topic (serious/sober for tragedies/death/conflict, exciting/dramatic for space/tech/sports).
+   - Do NOT mention chart terms (e.g. "bar chart", "data", "visualization").
+
+2. YouTube Metadata for TWO videos:
+
+   VIDEO 1 — LONG FORM (5-10 min, full dataset visualization):
+   - Title: Informative, specific, includes full date range. (e.g. "How World GDP Changed From 1960 to 2023")
+   - Description: 3-4 sentences explaining what the data shows, why it matters, and crediting the source.
+   - Tags: 10-15 relevant tags for SEO.
+
+   VIDEO 2 — SHORT (60 sec, highlights the extreme segment):
+   - Title: Punchy, hook-driven, highlights the most dramatic moment, ends with " #Shorts". (e.g. "China Overtook Japan's Economy In Just 15 Years #Shorts")
+   - Description: 2 sentences max.
+   - Tags: 10 relevant tags.
+
+Return ONLY a valid JSON object matching the requested schema.
 """
+
     try:
         response = generate_content_with_retry(
             client=client,
@@ -271,11 +316,26 @@ Rules:
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
+                response_schema=CombinedOutputs,
                 temperature=0.4,
             ),
         )
         res = json.loads(response.text.strip())
-        return res.get("hook", "").strip()
+        
+        # Validate that short_title ends with #Shorts
+        short_title = res.get("short_title", fallback_result["short_title"]).strip()
+        if not short_title.endswith("#Shorts"):
+            short_title = short_title + " #Shorts"
+            
+        return {
+            "hook": res.get("hook", fallback_result["hook"]).strip(),
+            "long_title": res.get("long_title", fallback_result["long_title"]).strip(),
+            "long_description": res.get("long_description", fallback_result["long_description"]).strip(),
+            "long_tags": res.get("long_tags", fallback_result["long_tags"]),
+            "short_title": short_title,
+            "short_description": res.get("short_description", fallback_result["short_description"]).strip(),
+            "short_tags": res.get("short_tags", fallback_result["short_tags"]),
+        }
     except Exception as e:
-        print(f"[analyzer] Gemini hook generation failed: {e}. Using fallback.")
-        return ""
+        print(f"[analyzer] Gemini combined hook & metadata generation failed: {e}. Using fallback.")
+        return fallback_result
