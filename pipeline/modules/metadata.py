@@ -16,15 +16,17 @@ from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
 def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
     """Generate metadata for both long-form and Short videos."""
+    result = None
     # Check if metadata was pre-generated during extreme segment analysis to save API calls
     if "metadata" in extreme_segment and extreme_segment["metadata"]:
         print("[metadata] Using pre-calculated metadata from extreme segment analysis.")
-        return extreme_segment["metadata"]
+        result = extreme_segment["metadata"]
 
-    from pipeline.modules.gemini_helper import build_gemini_client
-    client = build_gemini_client()
+    if not result:
+        from pipeline.modules.gemini_helper import build_gemini_client
+        client = build_gemini_client()
 
-    prompt = f"""Generate YouTube video metadata for TWO videos about the same dataset.
+        prompt = f"""Generate YouTube video metadata for TWO videos about the same dataset.
 
 Topic: {topic_info.get('topic', '')}
 Description: {topic_info.get('description', '')}
@@ -59,77 +61,108 @@ Return ONLY valid JSON:
 }}
 """
 
-    from pipeline.modules.gemini_helper import generate_content_with_retry
-    max_json_retries = 3
-    result = None
+        from pipeline.modules.gemini_helper import generate_content_with_retry
+        max_json_retries = 3
 
-    try:
-        for attempt in range(max_json_retries):
-            try:
-                response = generate_content_with_retry(
-                    client=client,
-                    model=GEMINI_MODEL,
-                    contents=prompt,
-                    config=types.GenerateContentConfig(
-                        temperature=0.7,
-                    ),
-                )
-                raw = response.text.strip()
-                if raw.startswith("```"):
-                    raw = re.sub(r"^```(?:json)?\s*", "", raw)
-                    raw = re.sub(r"\s*```$", "", raw)
+        try:
+            for attempt in range(max_json_retries):
+                try:
+                    response = generate_content_with_retry(
+                        client=client,
+                        model=GEMINI_MODEL,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            temperature=0.7,
+                        ),
+                    )
+                    raw = response.text.strip()
+                    if raw.startswith("```"):
+                        raw = re.sub(r"^```(?:json)?\s*", "", raw)
+                        raw = re.sub(r"\s*```$", "", raw)
 
-                result = json.loads(raw)
-                break  # Success!
-            except json.JSONDecodeError as e:
-                if attempt == max_json_retries - 1:
-                    raise RuntimeError(f"Invalid JSON from Gemini after {max_json_retries} attempts.\nRaw: {raw}\nError: {e}") from e
-                print(f"[metadata] Invalid JSON: {e}. Retrying JSON generation (Attempt {attempt+1}/{max_json_retries})...")
-                time.sleep(5)
-    except Exception as e:
-        print(f"[metadata] Warning: Gemini metadata generation failed: {e}. Falling back to programmatic metadata.")
-        topic_title = topic_info.get("topic", "Data Visualization")
-        source = topic_info.get("source", "Open Numbers / OWID")
-        start_year = extreme_segment.get("start_year", "")
-        end_year = extreme_segment.get("end_year", "")
-        
-        # Clean up topic title for tags
-        clean_title = re.sub(r'[^\w\s]', '', topic_title)
-        tags = [t.lower() for t in clean_title.split() if len(t) > 3][:12]
-        if "data" not in tags:
-            tags.append("data")
-        if "visualization" not in tags:
-            tags.append("visualization")
+                    result = json.loads(raw)
+                    break  # Success!
+                except json.JSONDecodeError as e:
+                    if attempt == max_json_retries - 1:
+                        raise RuntimeError(f"Invalid JSON from Gemini after {max_json_retries} attempts.\nRaw: {raw}\nError: {e}") from e
+                    print(f"[metadata] Invalid JSON: {e}. Retrying JSON generation (Attempt {attempt+1}/{max_json_retries})...")
+                    time.sleep(5)
+        except Exception as e:
+            print(f"[metadata] Warning: Gemini metadata generation failed: {e}. Falling back to programmatic metadata.")
+            topic_title = topic_info.get("topic") or "Data Visualization"
+            source = topic_info.get("source") or "Open Numbers / OWID"
+            start_year = extreme_segment.get("start_year") or ""
+            end_year = extreme_segment.get("end_year") or ""
             
-        result = {
-            "long_form": {
-                "title": f"How {topic_title} Changed Over Time",
-                "description": f"A comprehensive data visualization tracking {topic_title}.\n\nData source: {source}",
-                "tags": tags + ["chart race", "bar chart race", "statistics"]
-            },
-            "short": {
-                "title": f"The Dramatic Shift in {topic_title} ({start_year}-{end_year}) #Shorts",
-                "description": f"Highlighting the most extreme changes in {topic_title} from {start_year} to {end_year}.",
-                "tags": tags + ["shorts", "trending", "history"]
+            # Clean up topic title for tags
+            clean_title = re.sub(r'[^\w\s]', '', topic_title)
+            tags = [t.lower() for t in clean_title.split() if len(t) > 3][:12]
+            if "data" not in tags:
+                tags.append("data")
+            if "visualization" not in tags:
+                tags.append("visualization")
+                
+            result = {
+                "long_form": {
+                    "title": f"How {topic_title} Changed Over Time",
+                    "description": f"A comprehensive data visualization tracking {topic_title}.\n\nData source: {source}",
+                    "tags": tags + ["chart race", "bar chart race", "statistics"]
+                },
+                "short": {
+                    "title": f"The Dramatic Shift in {topic_title} ({start_year}-{end_year}) #Shorts",
+                    "description": f"Highlighting the most extreme changes in {topic_title} from {start_year} to {end_year}.",
+                    "tags": tags + ["shorts", "trending", "history"]
+                }
             }
-        }
 
-    # Validate structure (in case the generated JSON was partially valid but missing keys)
+    # Validate structure (in case the generated JSON was partially valid but missing keys/values)
+    fallback_topic = topic_info.get("topic") or "Data Visualization"
+    fallback_start = extreme_segment.get("start_year") or ""
+    fallback_end = extreme_segment.get("end_year") or ""
+
     for key in ("long_form", "short"):
-        if key not in result:
+        if key not in result or not isinstance(result[key], dict):
             result[key] = {}
         for field in ("title", "description", "tags"):
-            if field not in result[key]:
+            val = result[key].get(field)
+            is_valid = True
+            if field == "tags":
+                if not val or not isinstance(val, list):
+                    is_valid = False
+            else:
+                if not val or not isinstance(val, str) or not val.strip():
+                    is_valid = False
+                elif key == "short" and field == "title" and not val.replace("#Shorts", "").replace("#shorts", "").strip():
+                    # Title is empty except for #Shorts tag
+                    is_valid = False
+
+            if not is_valid:
                 if field == "title":
-                    result[key]["title"] = f"{topic_info.get('topic', 'Data Visualization')} #Shorts" if key == "short" else f"{topic_info.get('topic', 'Data Visualization')}"
+                    if key == "short":
+                        result[key]["title"] = f"The Dramatic Shift in {fallback_topic} ({fallback_start}-{fallback_end}) #Shorts"
+                    else:
+                        result[key]["title"] = f"How {fallback_topic} Changed Over Time"
                 elif field == "description":
-                    result[key]["description"] = f"Data tracking {topic_info.get('topic', 'Data Visualization')}"
+                    result[key]["description"] = f"Data visualization tracking {fallback_topic}."
                 elif field == "tags":
-                    result[key]["tags"] = ["data", "visualization"]
+                    result[key]["tags"] = ["data", "visualization", "history", "statistics"]
+            else:
+                # Clean up whitespace
+                if field != "tags":
+                    result[key][field] = val.strip()
+
+        # Enforce YouTube title limit of 100 characters
+        title_val = result[key]["title"]
+        if len(title_val) > 100:
+            if key == "short":
+                title_clean = title_val.replace(" #Shorts", "").replace("#Shorts", "").strip()
+                result[key]["title"] = title_clean[:88] + " #Shorts"
+            else:
+                result[key]["title"] = title_val[:97] + "..."
 
     # Ensure Short title ends with #Shorts
-    if not result["short"]["title"].rstrip().endswith("#Shorts"):
-        result["short"]["title"] = result["short"]["title"].rstrip() + " #Shorts"
+    if not result["short"]["title"].endswith("#Shorts"):
+        result["short"]["title"] = result["short"]["title"] + " #Shorts"
 
     print(f"[metadata] Long title: {result['long_form']['title']}")
     print(f"[metadata] Short title: {result['short']['title']}")

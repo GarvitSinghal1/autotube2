@@ -210,8 +210,8 @@ def _generate_hook_and_metadata(
     import re
 
     # 1. Setup fallback dict structure
-    topic_title = topic_info.get("topic", "Data Visualization")
-    source = topic_info.get("source", "Our World in Data")
+    topic_title = topic_info.get("topic") or "Data Visualization"
+    source = topic_info.get("source") or "Our World in Data"
     clean_title = re.sub(r'[^\w\s]', '', topic_title)
     tags = [t.lower() for t in clean_title.split() if len(t) > 3][:12]
     if "data" not in tags:
@@ -322,19 +322,73 @@ Return ONLY a valid JSON object matching the requested schema.
         )
         res = json.loads(response.text.strip())
         
-        # Validate that short_title ends with #Shorts
-        short_title = res.get("short_title", fallback_result["short_title"]).strip()
-        if not short_title.endswith("#Shorts"):
-            short_title = short_title + " #Shorts"
-            
+        # Validate and clean hook
+        hook = res.get("hook")
+        if not hook or not isinstance(hook, str) or not hook.strip():
+            hook = fallback_result["hook"]
+        else:
+            hook = hook.strip()
+
+        # Validate and clean titles
+        long_title = res.get("long_title")
+        if not long_title or not isinstance(long_title, str) or not long_title.strip():
+            long_title = fallback_result["long_title"]
+        else:
+            long_title = long_title.strip()
+
+        short_title = res.get("short_title")
+        if not short_title or not isinstance(short_title, str) or not short_title.replace("#Shorts", "").replace("#shorts", "").strip():
+            short_title = fallback_result["short_title"]
+        else:
+            short_title = short_title.strip()
+            if not short_title.endswith("#Shorts"):
+                short_title = short_title + " #Shorts"
+
+        # Validate and clean descriptions
+        long_desc = res.get("long_description")
+        if not long_desc or not isinstance(long_desc, str) or not long_desc.strip():
+            long_desc = fallback_result["long_description"]
+        else:
+            long_desc = long_desc.strip()
+
+        short_desc = res.get("short_description")
+        if not short_desc or not isinstance(short_desc, str) or not short_desc.strip():
+            short_desc = fallback_result["short_description"]
+        else:
+            short_desc = short_desc.strip()
+
+        # Validate and clean tags
+        long_tags = res.get("long_tags")
+        if not long_tags or not isinstance(long_tags, list):
+            long_tags = fallback_result["long_tags"]
+        else:
+            long_tags = [str(t).strip() for t in long_tags if str(t).strip()]
+            if not long_tags:
+                long_tags = fallback_result["long_tags"]
+
+        short_tags = res.get("short_tags")
+        if not short_tags or not isinstance(short_tags, list):
+            short_tags = fallback_result["short_tags"]
+        else:
+            short_tags = [str(t).strip() for t in short_tags if str(t).strip()]
+            if not short_tags:
+                short_tags = fallback_result["short_tags"]
+
+        # Enforce YouTube title limit of 100 characters
+        if len(long_title) > 100:
+            long_title = long_title[:97] + "..."
+        if len(short_title) > 100:
+            short_title_clean = short_title.replace(" #Shorts", "").replace("#Shorts", "").strip()
+            short_title = short_title_clean[:88] + " #Shorts"
+
         return {
-            "hook": res.get("hook", fallback_result["hook"]).strip(),
-            "long_title": res.get("long_title", fallback_result["long_title"]).strip(),
-            "long_description": res.get("long_description", fallback_result["long_description"]).strip(),
-            "long_tags": res.get("long_tags", fallback_result["long_tags"]),
+            "hook": hook,
+            "long_title": long_title,
+            "long_description": long_desc,
+            "long_tags": long_tags,
             "short_title": short_title,
-            "short_description": res.get("short_description", fallback_result["short_description"]).strip(),
-            "short_tags": res.get("short_tags", fallback_result["short_tags"]),
+            "short_description": short_desc,
+            "short_tags": short_tags,
         }
     except Exception as e:
         print(f"[analyzer] Gemini combined hook & metadata generation failed: {e}. Using fallback.")

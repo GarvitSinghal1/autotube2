@@ -136,6 +136,28 @@ def _upload_video(
     Raises:
         RuntimeError: If the upload fails.
     """
+    # Sanitize and validate title
+    if not title or not isinstance(title, str) or not title.strip():
+        title = "Data Visualization #Shorts" if is_short else "Data Visualization"
+    else:
+        title = title.strip().replace("<", "").replace(">", "")
+        
+    if is_short:
+        if not title.endswith("#Shorts"):
+            title = title + " #Shorts"
+        if len(title) > 100:
+            title_clean = title.replace(" #Shorts", "").replace("#Shorts", "").strip()
+            title = title_clean[:88] + " #Shorts"
+    else:
+        if len(title) > 100:
+            title = title[:97] + "..."
+
+    # Sanitize and validate description
+    if not description or not isinstance(description, str) or not description.strip():
+        description = "A compelling data visualization tracking changes over time."
+    else:
+        description = description.strip()
+
     body = {
         "snippet": {
             "title": title,

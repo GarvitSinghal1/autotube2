@@ -262,7 +262,6 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     except Exception as e:
         print(f"[topic] Gemini selection failed: {e}. Falling back to default selection.")
 
-
     # Fallback if Gemini failed or selection is invalid
     if not chosen_name or chosen_name not in sample_names:
         chosen_name = sample_names[0]
@@ -271,6 +270,16 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         suggested_full_unit = ""
         suggested_short_unit = ""
         print(f"[topic] Gemini selected invalid dataset or failed, falling back to: {chosen_name}")
+    else:
+        if not topic_title or not isinstance(topic_title, str) or not topic_title.strip():
+            topic_title = chosen_name
+        else:
+            topic_title = topic_title.strip()
+
+        if not topic_desc or not isinstance(topic_desc, str) or not topic_desc.strip():
+            topic_desc = f"A fascinating dataset about {topic_title}."
+        else:
+            topic_desc = topic_desc.strip()
 
     # 4. Construct deterministic URL based on database details or fallback
     entity_col = None
