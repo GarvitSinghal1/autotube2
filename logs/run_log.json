@@ -991,5 +991,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-24T04:18:02.169676+00:00",
+    "topic": "The Silent Crisis: Why Suicide Rates Among Young Women Are Soaring",
+    "dataset_url": "https://ourworldindata.org/grapher/suicide-rates-among-young-women-who-mdb.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2007,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/Gpxh8WNjtPA",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
