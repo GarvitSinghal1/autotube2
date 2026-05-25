@@ -106,6 +106,10 @@ def render_short(
     source = topic_info.get("source", "")
     hook = extreme_segment.get("hook", title)
 
+    import textwrap
+    wrapped_title = "\n".join(textwrap.wrap(title, width=28))
+    wrapped_hook = "\n".join(textwrap.wrap(hook, width=24))
+
     # Create figure once
     fig = plt.figure(figsize=(10.8, 19.2), dpi=100)
     fig.patch.set_facecolor("#000000")
@@ -154,10 +158,10 @@ def render_short(
 
         if hook_alpha > 0.01:
             fig.text(
-                0.5, hook_y, hook,
+                0.5, hook_y, wrapped_hook,
                 ha="center", va="center",
                 color=(1, 1, 1, hook_alpha),
-                fontsize=36, fontweight="bold",
+                fontsize=28, fontweight="bold",
                 wrap=True,
                 transform=fig.transFigure,
                 bbox=dict(
@@ -171,10 +175,10 @@ def render_short(
 
         if title_alpha > 0.01:
             fig.text(
-                0.5, 0.97, title,
+                0.5, 0.97, wrapped_title,
                 ha="center", va="top",
                 color=(1, 1, 1, title_alpha),
-                fontsize=32, fontweight="bold",
+                fontsize=26, fontweight="bold",
                 transform=fig.transFigure,
                 zorder=10,
                 wrap=True,
@@ -238,7 +242,7 @@ def render_short(
             interp_ts = ts_start + (ts_end - ts_start) * alpha
             date_label = str(interp_ts.year)
 
-            _draw_short_chart_frame(ax, fig, entities_data, title, source, date_label,
+            _draw_short_chart_frame(ax, fig, entities_data, wrapped_title, source, date_label,
                                     FRAMES_SHORT_DIR, frame_number, topic_info)
             frame_number += 1
 
@@ -249,7 +253,7 @@ def render_short(
 
     # Hold last frame for 1 second (cleaner loop transition)
     for _ in range(FPS * 1):
-        _draw_short_chart_frame(ax, fig, entities_data, title, source, date_label,
+        _draw_short_chart_frame(ax, fig, entities_data, wrapped_title, source, date_label,
                                 FRAMES_SHORT_DIR, frame_number, topic_info)
         frame_number += 1
 
@@ -326,32 +330,32 @@ def _draw_short_chart_frame(
 
         # Dynamic inside/outside labeling
         if norm_val > 0.50:
-            # Check if name is too long to fit with value inside
-            max_chars = int((norm_val - 0.15) / 0.022)
+            # Check if name is too long to fit with value inside (accounting for 0.04 shifts on both edges)
+            max_chars = int((norm_val - 0.18) / 0.022)
             max_chars = max(8, max_chars)
             display_name = clean_name
             if len(display_name) > max_chars:
                 display_name = display_name[:max_chars - 3] + "..."
 
-            # Entity name inside the bar, left-aligned
+            # Entity name inside the bar, left-aligned (shifted to 0.04 to prevent left border overlap)
             ax.text(
-                0.02, y, display_name,
+                0.04, y, display_name,
                 ha="left", va="center",
                 color="white", fontsize=18, fontweight="bold",
                 path_effects=outline,
             )
-            # Value label inside the bar, right-aligned
+            # Value label inside the bar, right-aligned (shifted to norm_val - 0.04 to prevent right border overlap)
             ax.text(
-                norm_val - 0.02, y, val_str,
+                norm_val - 0.04, y, val_str,
                 ha="right", va="center",
                 color="white", fontsize=18, fontweight="bold",
                 path_effects=outline,
             )
         else:
-            # Bar is too short, write both outside the bar
+            # Bar is too short, write both outside the bar (shifted to norm_val + 0.03 for clean gap)
             label_text = f"{clean_name} ({val_str})"
             ax.text(
-                norm_val + 0.02, y, label_text,
+                norm_val + 0.03, y, label_text,
                 ha="left", va="center",
                 color="white", fontsize=18, fontweight="bold",
                 path_effects=outline,
