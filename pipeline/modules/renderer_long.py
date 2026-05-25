@@ -48,8 +48,35 @@ BAR_HEIGHT = 0.65
 # ── Public API ───────────────────────────────────────────────────────────────
 
 def assign_entity_colors(entities: list[str]) -> dict[str, str]:
-    """Return a stable color mapping for a list of entity names."""
-    return {e: ACCENT_COLORS[i % len(ACCENT_COLORS)] for i, e in enumerate(sorted(entities))}
+    """Return a stable color mapping for a list of entity names, maximizing distinct colors."""
+    # Permuted color palette designed to maximize hue contrast between adjacent items
+    high_contrast_colors = [
+        "#FF6B6B",  # coral/red
+        "#00CEC9",  # cyan/teal
+        "#FFD93D",  # gold/yellow
+        "#6C5CE7",  # purple
+        "#55E6C1",  # green
+        "#FDA7DF",  # pink
+        "#F19066",  # orange
+        "#45B7D1",  # sky blue
+        "#E056A0",  # magenta
+        "#A8E6CF",  # mint green
+        "#778BEB",  # periwinkle
+        "#F9CA24",  # amber
+        "#3DC1D3",  # turquoise
+        "#F8A5C2",  # rose
+        "#786FA6",  # muted purple
+        "#63CDDA",  # light cyan
+        "#E77F67",  # burnt sienna
+        "#FF8B94",  # salmon
+        "#4ECDC4",  # teal
+        "#CF6A87",  # dusty rose
+    ]
+    sorted_entities = sorted(entities)
+    mapping = {}
+    for i, e in enumerate(sorted_entities):
+        mapping[e] = high_contrast_colors[i % len(high_contrast_colors)]
+    return mapping
 
 
 def render_long_form(
