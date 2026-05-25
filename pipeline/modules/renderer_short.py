@@ -113,7 +113,7 @@ def render_short(
     # Create figure once
     fig = plt.figure(figsize=(10.8, 19.2), dpi=100)
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.08, 0.10, 0.84, 0.76])
+    ax = fig.add_axes([0.08, 0.10, 0.84, 0.70])
 
     frame_number = 0
 
@@ -135,7 +135,7 @@ def render_short(
         # 1. Clear figure and draw the initial chart in the background (no titles or source)
         fig.clf()
         fig.patch.set_facecolor("#000000")
-        ax = fig.add_axes([0.08, 0.10, 0.84, 0.76])
+        ax = fig.add_axes([0.08, 0.10, 0.84, 0.70])
         _draw_short_chart_frame(ax, fig, entities_data_first, "", "", str(start_yr),
                                 FRAMES_SHORT_DIR, frame_number, topic_info, save=False)
         
@@ -197,7 +197,7 @@ def render_short(
     # Recreate axes after fig.clf() destroyed it in intro
     fig.clf()
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.08, 0.10, 0.84, 0.76])
+    ax = fig.add_axes([0.08, 0.10, 0.84, 0.70])
 
     # ── Chart animation ──────────────────────────────────────────────────
     prev_ranks: dict[str, int] = {}
@@ -366,15 +366,14 @@ def _draw_short_chart_frame(
     ax.set_xticks(ticks)
     ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=12, fontweight="bold")
 
-    # Ghost year — inside axes, bottom right, behind bars
+    # Year — centered above the chart, completely separated from the bars to prevent overlap
     ax.text(
-        0.98, 0.05, date_label,
-        ha="right", va="bottom",
-        color="white",
-        alpha=0.15,
-        fontsize=140, fontweight="bold",
-        transform=ax.transAxes,
-        zorder=0,
+        0.5, 0.84, date_label,
+        ha="center", va="center",
+        color="white", fontsize=48, fontweight="bold",
+        transform=fig.transFigure,
+        path_effects=outline,
+        zorder=10,
     )
 
     # Title — figure-level, top
