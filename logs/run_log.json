@@ -1183,5 +1183,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-25T20:57:14.003607+00:00",
+    "topic": "The Battle for Peace: Which Nations Are Winning (or Losing)?",
+    "dataset_url": "https://ourworldindata.org/grapher/deaths-in-armed-conflicts-by-country.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2011,
+      "end_year": 2026
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/pB9w4R7rvSQ",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
