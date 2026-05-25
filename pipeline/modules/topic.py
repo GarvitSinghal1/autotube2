@@ -27,8 +27,10 @@ Choose a topic that will hook a general audience in the first 2 seconds.
 CRITICAL GUIDELINES:
 1. Avoid dry academic, political development, or clinical metrics (e.g. government spending, energy efficiency, Gini coefficients, pollution rates, standard disease prevalence/treatment rates).
 2. Prioritize high-retention concepts: global conflicts, weapon/nuclear proliferation, space exploration milestones, lifestyles/addictions (alcohol, cigarette sales), historical crime/suicide trends, natural disasters, major epidemics/plagues, or massive wealth concentration (billionaires).
-3. The title ("topic") MUST be an engaging, clickable YouTube hook (e.g., use formats like "The Rise and Fall of...", "The Deadliest...", "The Shocking Truth About...", "Inside the...") rather than repeating the dry dataset name.
-4. Based on your knowledge of the selected dataset, suggest the unit of measurement:
+3. Focus on "Emotion + Data": Prioritize datasets that trigger strong feelings of rivalry, nostalgia, controversy, or dramatic rise-and-fall stories (e.g. "Most Hated Apps", "AI Companies Taking Over", "YouTubers Who Fell Off", "Games That Died").
+4. Keep the winner or outcome UNCLEAR in the title: If viewers know the outcome instantly, retention tanks. Avoid titles that spoil the ending (e.g., Bad: "USA dominates GDP", Good: "The Battle for Global GDP dominance" or "The Fastest Growing Economies"). Keep the outcome uncertain to build suspense.
+5. The title ("topic") MUST be an engaging, clickable YouTube hook rather than repeating the dry dataset name.
+6. Based on your knowledge of the selected dataset, suggest the unit of measurement:
    - suggested_full_unit: the complete, formal unit name (e.g., "liters of pure alcohol per capita", "number of nuclear weapons", "metric tons per capita")
    - suggested_short_unit: a very short version (1 word or abbreviation/symbol, e.g., "liters", "weapons", "tons", "%", "$") to display next to numbers on the chart.
 

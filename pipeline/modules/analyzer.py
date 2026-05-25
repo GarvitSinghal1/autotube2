@@ -303,7 +303,8 @@ Your task is to generate the following elements:
 
    VIDEO 2 — SHORT (60 sec, highlights the extreme segment):
    - Title: Punchy, hook-driven, highlights the most dramatic moment, ends with " #Shorts".
-   - CRITICAL: Double down on "shock statistics" by incorporating extreme percentage growth (e.g., "Exploded 1455%"), massive multipliers (e.g., "Grew 15x"), or shocking direct comparisons (e.g., "China Overtook Japan's Economy In Just 15 Years") based on the highlights list.
+   - CRITICAL: Keep the final winner or outcome UNCLEAR in the title to create suspense and keep viewers watching (e.g. Bad: "USA Dominates GDP #Shorts", Good: "The Battle for Global GDP Dominance #Shorts" or "Who Overtook Japan's Economy? #Shorts").
+   - CRITICAL: Focus on "emotion + data" (rivalry, rise/fall, nostalgia, or controversy) and highlight the extreme percentage growth (e.g., "Exploded 1455%"), massive multipliers (e.g., "Grew 15x"), or dramatic shifts without spoiling who wins in the end.
    - Description: 2 sentences max.
    - Tags: 10 relevant tags.
 
