@@ -1087,5 +1087,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-25T04:40:51.325147+00:00",
+    "topic": "The Shocking Amount of Space Junk Circling Our Planet",
+    "dataset_url": "https://ourworldindata.org/grapher/cumulative-number-of-objects-launched-into-outer-space.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2025
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/fl9udiusC1U",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
