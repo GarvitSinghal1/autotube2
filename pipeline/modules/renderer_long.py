@@ -51,26 +51,26 @@ def assign_entity_colors(entities: list[str]) -> dict[str, str]:
     """Return a stable color mapping for a list of entity names, maximizing distinct colors."""
     # Permuted color palette designed to maximize hue contrast between adjacent items
     high_contrast_colors = [
-        "#FF6B6B",  # coral/red
-        "#00CEC9",  # cyan/teal
-        "#FFD93D",  # gold/yellow
-        "#6C5CE7",  # purple
-        "#55E6C1",  # green
-        "#FDA7DF",  # pink
-        "#F19066",  # orange
-        "#45B7D1",  # sky blue
-        "#E056A0",  # magenta
-        "#A8E6CF",  # mint green
-        "#778BEB",  # periwinkle
-        "#F9CA24",  # amber
-        "#3DC1D3",  # turquoise
-        "#F8A5C2",  # rose
-        "#786FA6",  # muted purple
-        "#63CDDA",  # light cyan
-        "#E77F67",  # burnt sienna
-        "#FF8B94",  # salmon
-        "#4ECDC4",  # teal
-        "#CF6A87",  # dusty rose
+        "#FF2A6D",  # Neon Rose / Hot Pink
+        "#05D9E8",  # Neon Cyan / Electric Blue
+        "#39FF14",  # Neon Green / Lime
+        "#FFCC00",  # Neon Gold / Yellow
+        "#B026FF",  # Neon Purple / Violet
+        "#FF5E36",  # Neon Orange / Coral
+        "#0072FF",  # Neon Bright Blue
+        "#FF00FF",  # Neon Magenta
+        "#00F5D4",  # Neon Bright Teal / Mint
+        "#FF9F1C",  # Neon Tangerine
+        "#9B5DE5",  # Neon Lavender
+        "#00BFFF",  # Neon Deep Sky Blue
+        "#F15BB5",  # Neon Pink
+        "#ADFF2F",  # Neon Lime Green
+        "#EE5253",  # Neon Bright Red
+        "#54A0FF",  # Neon Ice Blue
+        "#A55EEA",  # Neon Violet / Purple
+        "#10AC84",  # Neon Dark Teal
+        "#FF6B6B",  # Neon Coral
+        "#70A1FF",  # Neon Periwinkle Blue
     ]
     sorted_entities = sorted(entities)
     mapping = {}
