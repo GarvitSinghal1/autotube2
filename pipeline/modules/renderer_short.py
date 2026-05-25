@@ -12,6 +12,8 @@ from typing import Optional
 
 import matplotlib
 matplotlib.use("Agg")
+import matplotlib.patheffects as path_effects
+from matplotlib.colors import to_rgba
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -107,7 +109,7 @@ def render_short(
     # Create figure once
     fig = plt.figure(figsize=(10.8, 19.2), dpi=100)
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
+    ax = fig.add_axes([0.08, 0.10, 0.84, 0.76])
 
     frame_number = 0
 
@@ -129,7 +131,7 @@ def render_short(
         # 1. Clear figure and draw the initial chart in the background (no titles or source)
         fig.clf()
         fig.patch.set_facecolor("#000000")
-        ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
+        ax = fig.add_axes([0.08, 0.10, 0.84, 0.76])
         _draw_short_chart_frame(ax, fig, entities_data_first, "", "", str(start_yr),
                                 FRAMES_SHORT_DIR, frame_number, topic_info, save=False)
         
@@ -155,14 +157,14 @@ def render_short(
                 0.5, hook_y, hook,
                 ha="center", va="center",
                 color=(1, 1, 1, hook_alpha),
-                fontsize=18, fontweight="bold",
+                fontsize=36, fontweight="bold",
                 wrap=True,
                 transform=fig.transFigure,
                 bbox=dict(
                     boxstyle="round,pad=0.8",
                     facecolor="#111111",
                     edgecolor=(1, 1, 1, hook_alpha * 0.4),
-                    linewidth=1,
+                    linewidth=1.5,
                 ),
                 zorder=10,
             )
@@ -172,9 +174,10 @@ def render_short(
                 0.5, 0.97, title,
                 ha="center", va="top",
                 color=(1, 1, 1, title_alpha),
-                fontsize=12, fontweight="bold",
+                fontsize=32, fontweight="bold",
                 transform=fig.transFigure,
                 zorder=10,
+                wrap=True,
             )
 
         # 4. Save frame
@@ -190,7 +193,7 @@ def render_short(
     # Recreate axes after fig.clf() destroyed it in intro
     fig.clf()
     fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
+    ax = fig.add_axes([0.08, 0.10, 0.84, 0.76])
 
     # ── Chart animation ──────────────────────────────────────────────────
     prev_ranks: dict[str, int] = {}
@@ -279,7 +282,7 @@ def _draw_short_chart_frame(
     ax.set_xlim(0, 1)
     ax.set_ylim(-0.6, 9.6)
     ax.set_yticks([])
-    ax.tick_params(axis="x", colors="white", labelsize=7)
+    ax.tick_params(axis="x", colors="white", labelsize=12)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.spines["left"].set_visible(False)
@@ -303,45 +306,69 @@ def _draw_short_chart_frame(
     short_unit = topic_info.get("short_unit", "") if topic_info else ""
     full_unit = topic_info.get("full_unit", "") if topic_info else ""
 
+    # Path effects for thick black outline to make white text popped and perfectly legible
+    outline = [path_effects.Stroke(linewidth=3.5, foreground="black"), path_effects.Normal()]
+
     for d in entities_data:
         norm_val = d["value"] / max_value
         y = d["y_pos"]
         color = d["color"]
 
-        ax.barh(y, norm_val, height=BAR_HEIGHT, color=color, alpha=0.9, left=0)
+        # Glassmorphic neon style: facecolor transparent, edgecolor solid/neon, linewidth=2.5
+        rgba_face = to_rgba(color, alpha=0.45)
+        rgba_edge = to_rgba(color, alpha=0.95)
+        ax.barh(y, norm_val, height=BAR_HEIGHT, facecolor=rgba_face, edgecolor=rgba_edge, linewidth=2.5, left=0)
 
         # Clean/truncate entity name to prevent cutting off
         import re
         clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", d["entity"]).strip()
-        if len(clean_name) > 22:
-            clean_name = clean_name[:19] + "..."
+        val_str = format_value(d["value"], short_unit)
 
-        # Entity name — left margin
-        ax.text(
-            -0.01, y, clean_name,
-            ha="right", va="center",
-            color="white", fontsize=9, fontweight="bold",
-        )
+        # Dynamic inside/outside labeling
+        if norm_val > 0.50:
+            # Check if name is too long to fit with value inside
+            max_chars = int((norm_val - 0.15) / 0.022)
+            max_chars = max(8, max_chars)
+            display_name = clean_name
+            if len(display_name) > max_chars:
+                display_name = display_name[:max_chars - 3] + "..."
 
-        # Value label — right end of bar
-        ax.text(
-            norm_val + 0.01, y, format_value(d["value"], short_unit),
-            ha="left", va="center",
-            color="white", fontsize=8,
-        )
+            # Entity name inside the bar, left-aligned
+            ax.text(
+                0.02, y, display_name,
+                ha="left", va="center",
+                color="white", fontsize=18, fontweight="bold",
+                path_effects=outline,
+            )
+            # Value label inside the bar, right-aligned
+            ax.text(
+                norm_val - 0.02, y, val_str,
+                ha="right", va="center",
+                color="white", fontsize=18, fontweight="bold",
+                path_effects=outline,
+            )
+        else:
+            # Bar is too short, write both outside the bar
+            label_text = f"{clean_name} ({val_str})"
+            ax.text(
+                norm_val + 0.02, y, label_text,
+                ha="left", va="center",
+                color="white", fontsize=18, fontweight="bold",
+                path_effects=outline,
+            )
 
     # X-axis tick labels
     ticks = [0.0, 0.25, 0.5, 0.75, 1.0]
     ax.set_xticks(ticks)
-    ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=7)
+    ax.set_xticklabels([format_value(t * max_value) for t in ticks], color="white", fontsize=12, fontweight="bold")
 
     # Ghost year — inside axes, bottom right, behind bars
     ax.text(
         0.98, 0.05, date_label,
         ha="right", va="bottom",
         color="white",
-        alpha=0.20,
-        fontsize=120, fontweight="bold",
+        alpha=0.15,
+        fontsize=140, fontweight="bold",
         transform=ax.transAxes,
         zorder=0,
     )
@@ -350,8 +377,9 @@ def _draw_short_chart_frame(
     ax.text(
         0.5, 0.97, title,
         ha="center", va="top",
-        color="white", fontsize=12, fontweight="bold",
+        color="white", fontsize=24, fontweight="bold",
         transform=fig.transFigure,
+        wrap=True,
     )
 
     # Source / Unit text — below title
@@ -364,9 +392,9 @@ def _draw_short_chart_frame(
 
     if source_text:
         ax.text(
-            0.5, 0.93, source_text,
+            0.5, 0.91, source_text,
             ha="center", va="top",
-            color="#888888", fontsize=8, style="italic",
+            color="#bbbbbb", fontsize=14, style="italic",
             transform=fig.transFigure,
         )
 
