@@ -1111,5 +1111,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-25T09:31:06.978007+00:00",
+    "topic": "The Silent Crisis: Who is Losing the Battle Against Themselves?",
+    "dataset_url": "https://ourworldindata.org/grapher/suicide-rate-male-female-who-mdb.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/qOIF38rVQSg",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
