@@ -1135,5 +1135,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-25T14:33:37.709913+00:00",
+    "topic": "The Sky is Getting Crowded: The EXPLOSION of Objects Launched into Space",
+    "dataset_url": "https://ourworldindata.org/grapher/yearly-number-of-objects-launched-into-outer-space.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2025
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/NzB3D9FMu8I",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
