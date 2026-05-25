@@ -302,7 +302,8 @@ Your task is to generate the following elements:
    - Tags: 10-15 relevant tags for SEO.
 
    VIDEO 2 — SHORT (60 sec, highlights the extreme segment):
-   - Title: Punchy, hook-driven, highlights the most dramatic moment, ends with " #Shorts". (e.g. "China Overtook Japan's Economy In Just 15 Years #Shorts")
+   - Title: Punchy, hook-driven, highlights the most dramatic moment, ends with " #Shorts".
+   - CRITICAL: Double down on "shock statistics" by incorporating extreme percentage growth (e.g., "Exploded 1455%"), massive multipliers (e.g., "Grew 15x"), or shocking direct comparisons (e.g., "China Overtook Japan's Economy In Just 15 Years") based on the highlights list.
    - Description: 2 sentences max.
    - Tags: 10 relevant tags.
 

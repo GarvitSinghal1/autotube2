@@ -112,8 +112,79 @@ def render_short(
     frame_number = 0
 
     # ── Intro ────────────────────────────────────────────────────────────
+    # Compute initial state for background rendering
+    first_vals = step_values[0]
+    sorted_ents_first = sorted(first_vals.keys(), key=lambda e: first_vals[e], reverse=True)
+    top10_first = sorted_ents_first[:TOP_N_ENTITIES]
+    entities_data_first = []
+    for rank, entity in enumerate(top10_first):
+        entities_data_first.append({
+            "entity": entity,
+            "value":  float(first_vals[entity]),
+            "y_pos":  SLOTS[rank],
+            "color":  entity_colors.get(entity, ACCENT_COLORS[0]),
+        })
+
     for f in range(SHORT_INTRO_FRAMES):
-        _draw_intro_frame(fig, hook, title, f, SHORT_INTRO_FRAMES, FRAMES_SHORT_DIR, frame_number)
+        # 1. Clear figure and draw the initial chart in the background (no titles or source)
+        fig.clf()
+        fig.patch.set_facecolor("#000000")
+        ax = fig.add_axes([0.30, 0.10, 0.65, 0.76])
+        _draw_short_chart_frame(ax, fig, entities_data_first, "", "", str(start_yr),
+                                FRAMES_SHORT_DIR, frame_number, topic_info, save=False)
+        
+        # 2. Add a translucent black overlay to dim the chart
+        overlay = plt.Rectangle((0, 0), 1, 1, facecolor="#000000", alpha=0.70, transform=fig.transFigure, zorder=5)
+        fig.patches.append(overlay)
+        
+        # 3. Draw hook and title fade-in/slide-up
+        half = SHORT_INTRO_FRAMES // 2
+        if f < half:
+            hook_alpha = 1.0
+            title_alpha = 0.0
+            hook_y = 0.5
+        else:
+            t = (f - half) / half
+            eased_t = _ease(t)
+            hook_y = 0.5 + eased_t * 0.45
+            hook_alpha = 1.0 - eased_t
+            title_alpha = eased_t
+
+        if hook_alpha > 0.01:
+            fig.text(
+                0.5, hook_y, hook,
+                ha="center", va="center",
+                color=(1, 1, 1, hook_alpha),
+                fontsize=18, fontweight="bold",
+                wrap=True,
+                transform=fig.transFigure,
+                bbox=dict(
+                    boxstyle="round,pad=0.8",
+                    facecolor="#111111",
+                    edgecolor=(1, 1, 1, hook_alpha * 0.4),
+                    linewidth=1,
+                ),
+                zorder=10,
+            )
+
+        if title_alpha > 0.01:
+            fig.text(
+                0.5, 0.97, title,
+                ha="center", va="top",
+                color=(1, 1, 1, title_alpha),
+                fontsize=12, fontweight="bold",
+                transform=fig.transFigure,
+                zorder=10,
+            )
+
+        # 4. Save frame
+        fig.savefig(
+            FRAMES_SHORT_DIR / f"frame_{frame_number:05d}.png",
+            dpi=100,
+            facecolor="#000000",
+            pad_inches=0,
+            pil_kwargs={"compress_level": 1},
+        )
         frame_number += 1
 
     # Recreate axes after fig.clf() destroyed it in intro
@@ -199,6 +270,7 @@ def _draw_short_chart_frame(
     frames_dir: Path,
     frame_number: int,
     topic_info: Optional[dict] = None,
+    save: bool = True,
 ) -> None:
     """Draw a single vertical-format chart frame and save to disk."""
     ax.cla()
@@ -214,13 +286,14 @@ def _draw_short_chart_frame(
     ax.spines["bottom"].set_color("#444444")
 
     if not entities_data:
-        fig.savefig(
-            frames_dir / f"frame_{frame_number:05d}.png",
-            dpi=100,
-            facecolor="#000000",
-            pad_inches=0,
-            pil_kwargs={"compress_level": 1},
-        )
+        if save:
+            fig.savefig(
+                frames_dir / f"frame_{frame_number:05d}.png",
+                dpi=100,
+                facecolor="#000000",
+                pad_inches=0,
+                pil_kwargs={"compress_level": 1},
+            )
         return
 
     max_value = max(d["value"] for d in entities_data) * 1.1
@@ -297,13 +370,14 @@ def _draw_short_chart_frame(
             transform=fig.transFigure,
         )
 
-    fig.savefig(
-        frames_dir / f"frame_{frame_number:05d}.png",
-        dpi=100,
-        facecolor="#000000",
-        pad_inches=0,
-        pil_kwargs={"compress_level": 1},
-    )
+    if save:
+        fig.savefig(
+            frames_dir / f"frame_{frame_number:05d}.png",
+            dpi=100,
+            facecolor="#000000",
+            pad_inches=0,
+            pil_kwargs={"compress_level": 1},
+        )
 
 
 def _encode_short(frames_dir: Path, output_path: Path) -> None:
