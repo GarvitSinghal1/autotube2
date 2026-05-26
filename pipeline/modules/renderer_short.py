@@ -129,6 +129,7 @@ def render_short(
             "value":  float(first_vals[entity]),
             "y_pos":  SLOTS[rank],
             "color":  entity_colors.get(entity, ACCENT_COLORS[0]),
+            "left_offset": 0.0,
         })
 
     for f in range(SHORT_INTRO_FRAMES):
@@ -200,7 +201,8 @@ def render_short(
     ax = fig.add_axes([0.08, 0.10, 0.84, 0.70])
 
     # ── Chart animation ──────────────────────────────────────────────────
-    prev_ranks: dict[str, int] = {}
+    # Initialize prev_ranks with step 0 rankings to prevent initial entities from sliding in
+    prev_ranks: dict[str, int] = {e: r for r, e in enumerate(sorted_ents_first)}
     entities_data = []
     date_label = str(start_yr)
 
@@ -230,13 +232,21 @@ def render_short(
                 prev_slot_rank = prev_ranks.get(entity, TOP_N_ENTITIES)
                 prev_y = SLOTS.get(prev_slot_rank, OFF_SCREEN_Y)
                 cur_y  = SLOTS[rank]
-                y_pos  = prev_y + (cur_y - prev_y) * alpha
+                
+                # If entering, stay at cur_y and slide in horizontally from the right
+                if prev_slot_rank == TOP_N_ENTITIES:
+                    y_pos = cur_y
+                    left_offset = 1.0 - alpha
+                else:
+                    y_pos = prev_y + (cur_y - prev_y) * alpha
+                    left_offset = 0.0
 
                 entities_data.append({
                     "entity": entity,
                     "value":  interp_vals[entity],
                     "y_pos":  y_pos,
                     "color":  entity_colors.get(entity, ACCENT_COLORS[0]),
+                    "left_offset": left_offset,
                 })
 
             interp_ts = ts_start + (ts_end - ts_start) * alpha
@@ -317,18 +327,21 @@ def _draw_short_chart_frame(
         norm_val = d["value"] / max_value
         y = d["y_pos"]
         color = d["color"]
+        left_offset = d.get("left_offset", 0.0)
 
         # Glassmorphic neon style: facecolor transparent, edgecolor solid/neon, linewidth=2.5
         rgba_face = to_rgba(color, alpha=0.45)
         rgba_edge = to_rgba(color, alpha=0.95)
-        ax.barh(y, norm_val, height=BAR_HEIGHT, facecolor=rgba_face, edgecolor=rgba_edge, linewidth=2.5, left=0)
+        ax.barh(y, norm_val, height=BAR_HEIGHT, facecolor=rgba_face, edgecolor=rgba_edge, linewidth=2.5, left=left_offset)
 
         # Clean/truncate entity name to prevent cutting off
         import re
         clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", d["entity"]).strip()
         val_str = format_value(d["value"], short_unit)
 
-        # Dynamic inside/outside labeling
+        actual_end = left_offset + norm_val
+
+        # Dynamic inside/outside labeling based on shifted position (left_offset + norm_val)
         if norm_val > 0.50:
             # Check if name is too long to fit with value inside (accounting for 0.04 shifts on both edges)
             max_chars = int((norm_val - 0.18) / 0.022)
@@ -337,28 +350,31 @@ def _draw_short_chart_frame(
             if len(display_name) > max_chars:
                 display_name = display_name[:max_chars - 3] + "..."
 
-            # Entity name inside the bar, left-aligned (shifted to 0.04 to prevent left border overlap)
+            # Entity name inside the bar, left-aligned (shifted by left_offset, and 0.04 away from left border)
             ax.text(
-                0.04, y, display_name,
+                left_offset + 0.04, y, display_name,
                 ha="left", va="center",
                 color="white", fontsize=18, fontweight="bold",
                 path_effects=outline,
+                clip_on=True,
             )
-            # Value label inside the bar, right-aligned (shifted to norm_val - 0.04 to prevent right border overlap)
+            # Value label inside the bar, right-aligned (shifted by left_offset, and 0.04 away from right border)
             ax.text(
-                norm_val - 0.04, y, val_str,
+                actual_end - 0.04, y, val_str,
                 ha="right", va="center",
                 color="white", fontsize=18, fontweight="bold",
                 path_effects=outline,
+                clip_on=True,
             )
         else:
-            # Bar is too short, write both outside the bar (shifted to norm_val + 0.03 for clean gap)
+            # Bar is too short, write both outside the bar (shifted to actual_end + 0.03 for clean gap)
             label_text = f"{clean_name} ({val_str})"
             ax.text(
-                norm_val + 0.03, y, label_text,
+                actual_end + 0.03, y, label_text,
                 ha="left", va="center",
                 color="white", fontsize=18, fontweight="bold",
                 path_effects=outline,
+                clip_on=True,
             )
 
     # X-axis tick labels

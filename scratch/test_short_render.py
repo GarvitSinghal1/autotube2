@@ -11,10 +11,12 @@ from pipeline.modules.renderer_short import render_short
 
 def generate_mock_data():
     print("[*] Generating mock monthly data...")
+    np.random.seed(42)
     dates = pd.date_range("2010-01-01", "2020-01-01", freq="MS")
     entities = [
         "Apple", "Microsoft", "Google", "Amazon", "Meta", 
-        "Tesla", "Nvidia", "Netflix", "Intel", "AMD"
+        "Tesla", "Nvidia", "Netflix", "Intel", "AMD",
+        "Adobe", "Oracle", "Salesforce", "Cisco", "IBM"
     ]
     
     rows = []
