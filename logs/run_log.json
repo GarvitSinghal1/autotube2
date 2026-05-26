@@ -1231,5 +1231,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-26T18:28:24.779461+00:00",
+    "topic": "Who Faces the GREATEST Threat? Global Homicide Trends by Gender",
+    "dataset_url": "https://ourworldindata.org/grapher/homicides-by-sex-of-the-victim.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/TiKvf92eGVQ",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
