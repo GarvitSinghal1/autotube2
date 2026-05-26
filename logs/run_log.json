@@ -1207,5 +1207,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-26T02:08:47.380564+00:00",
+    "topic": "Who Smokes More? The Global Battle of the Sexes",
+    "dataset_url": "https://ourworldindata.org/grapher/comparing-the-share-of-men-and-women-who-are-smoking.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2003,
+      "end_year": 2022
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/Xkp1APpzKZA",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
