@@ -1255,5 +1255,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-27T03:59:02.036458+00:00",
+    "topic": "Polio's Twisted Comeback: The Vaccine Dilemma",
+    "dataset_url": "https://ourworldindata.org/grapher/cases-of-paralytic-polio-from-wild-vs-vaccine-derived-viruses.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2009,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/5gqBCRRPJE4",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
