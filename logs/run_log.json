@@ -1327,5 +1327,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-28T11:40:33.913222+00:00",
+    "topic": "The World's Most Dangerous Places: A Global Homicide Battle",
+    "dataset_url": "https://ourworldindata.org/grapher/homicide-rate-who-mortality-database.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2008,
+      "end_year": 2023
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
   }
 ]
