@@ -1399,5 +1399,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+  },
+  {
+    "timestamp": "2026-05-29T11:32:21.689808+00:00",
+    "topic": "The World's Bloodiest Conflicts: Where Are People Dying The Most?",
+    "dataset_url": "https://ourworldindata.org/grapher/death-rate-in-armed-conflicts.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2004,
+      "end_year": 2024
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
   }
 ]
