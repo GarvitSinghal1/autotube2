@@ -1423,5 +1423,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+  },
+  {
+    "timestamp": "2026-05-29T18:36:39.275011+00:00",
+    "topic": "War's Deadliest Secret: Who Really Pays the Price?",
+    "dataset_url": "https://ourworldindata.org/grapher/civilian-and-combatant-deaths-in-armed-conflicts.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2011,
+      "end_year": 2024
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
   }
 ]
