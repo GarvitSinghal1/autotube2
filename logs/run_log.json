@@ -1495,5 +1495,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+  },
+  {
+    "timestamp": "2026-05-30T17:08:05.802910+00:00",
+    "topic": "The Global Homicide Crisis: Who's Winning the Fight Against Violence?",
+    "dataset_url": "https://ourworldindata.org/grapher/homicides-unodc.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2004,
+      "end_year": 2024
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
   }
 ]
