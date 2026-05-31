@@ -1543,5 +1543,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+  },
+  {
+    "timestamp": "2026-05-31T10:18:25.601044+00:00",
+    "topic": "The Great Population Shift: Which Nations Are Disappearing by 2100?",
+    "dataset_url": "https://ourworldindata.org/grapher/births-and-deaths-projected-to-2100.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2003,
+      "end_year": 2023
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
   }
 ]
