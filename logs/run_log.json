@@ -1591,5 +1591,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-05-31T17:08:34.166479+00:00",
+    "topic": "When Nature Unleashes Hell: The Countries That Paid the Ultimate Price",
+    "dataset_url": "https://ourworldindata.org/grapher/deaths-and-missing-persons-due-to-natural-disasters.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2014,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/zd137vPAKOY",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
