@@ -1639,5 +1639,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-01T13:39:52.344889+00:00",
+    "topic": "The Silent Epidemic: Where Young Women Are Struggling Most",
+    "dataset_url": "https://ourworldindata.org/grapher/suicide-rates-among-young-women-who-mdb.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2007,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/dgVBo6rIgFs",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
