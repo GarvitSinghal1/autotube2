@@ -1711,5 +1711,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-02T12:06:45.830214+00:00",
+    "topic": "Nature's Fury: The Deadliest Disasters in History",
+    "dataset_url": "https://ourworldindata.org/grapher/natural-disasters-deaths.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2025
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/GwQSyNj9Voo",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
