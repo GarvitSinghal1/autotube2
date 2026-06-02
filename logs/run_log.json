@@ -1735,5 +1735,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-02T19:43:01.581742+00:00",
+    "topic": "The World's Deadliest Conflicts: Who Suffered Most?",
+    "dataset_url": "https://ourworldindata.org/grapher/deaths-in-armed-conflicts-by-type-and-country.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2008,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/wgsXMBSdMZQ",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
