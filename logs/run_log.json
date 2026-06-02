@@ -1687,5 +1687,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-02T04:08:12.625735+00:00",
+    "topic": "The World's Most Expensive Disasters: A Shocking Timeline",
+    "dataset_url": "https://ourworldindata.org/grapher/natural-disasters-economic-damages.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2004,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/Un9J5QliWro",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
