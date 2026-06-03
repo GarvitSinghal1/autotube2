@@ -1783,5 +1783,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-03T12:43:45.580132+00:00",
+    "topic": "The World's Most Dangerous Nations: Nuclear Weapons Per Capita",
+    "dataset_url": "https://ourworldindata.org/grapher/per-capita-nuclear.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2004,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/xpPWzl84ttw",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
