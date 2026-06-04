@@ -1879,5 +1879,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-04T18:19:24.546470+00:00",
+    "topic": "The Global Gun Crisis: Who's Winning the Fight?",
+    "dataset_url": "https://ourworldindata.org/grapher/homicides-by-firearm.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/DkblhzVBK0E",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
