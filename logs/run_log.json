@@ -1903,5 +1903,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-05T03:56:55.973630+00:00",
+    "topic": "The AI Race: Who's Winning the Future?",
+    "dataset_url": "https://ourworldindata.org/grapher/domain-notable-artificial-intelligence-systems.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/bct-X8vdLdw",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
