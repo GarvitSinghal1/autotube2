@@ -1951,5 +1951,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-05T17:57:52.674278+00:00",
+    "topic": "The World's Deadliest Battlegrounds: Where Conflict Rages Most",
+    "dataset_url": "https://ourworldindata.org/grapher/deaths-in-armed-conflicts-by-region.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2011,
+      "end_year": 2026
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/eUirmXqYirI",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
