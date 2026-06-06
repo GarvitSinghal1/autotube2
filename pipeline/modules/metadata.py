@@ -16,6 +16,7 @@ from pipeline.config import GEMINI_API_KEY, GEMINI_MODEL
 
 def generate_metadata(topic_info: dict, extreme_segment: dict) -> dict:
     """Generate metadata for both long-form and Short videos."""
+    from pipeline.modules.gemini_helper import clean_banned_words
     result = None
     # Check if metadata was pre-generated during extreme segment analysis to save API calls
     if "metadata" in extreme_segment and extreme_segment["metadata"]:
@@ -40,9 +41,14 @@ VIDEO 1 — LONG FORM (5-10 min, full dataset visualization):
 - Title: informative, specific, includes date range. Example style: "How World GDP Changed From 1960 to 2023"
 - Description: 3-4 sentences explaining what the data shows, why it matters. Include data source credit at the end.
 - Tags: 10-15 relevant tags for SEO
+- CRITICAL: BANNED WORDS. Do NOT use the words "Witness", "Explode", "Surge" (or their variations, such as "Witnessed", "Exploded", "Explosion", "Surged", "Surging", etc.) anywhere in the title. Choose alternative action/drama verbs and nouns (e.g., Rise, Growth, Climb, Boom, Leap, Battle, Dominance).
 
 VIDEO 2 — SHORT (60 sec, highlights the extreme segment):
 - Title: punchy, hook-driven, highlights the most dramatic moment. Must end with " #Shorts". Example: "China Overtook Japan's Economy In Just 15 Years #Shorts"
+- CRITICAL: Keep the final winner or outcome UNCLEAR in the title to create suspense and keep viewers watching (e.g. Bad: "USA Dominates GDP #Shorts", Good: "The Battle for Global GDP Dominance #Shorts" or "Who Overtook Japan's Economy? #Shorts").
+- CRITICAL: Focus on "emotion + data" (rivalry, rise/fall, nostalgia, or controversy) and highlight extreme growth/decline without spoiling who wins in the end.
+- CRITICAL: BANNED WORDS. Do NOT use the words "Witness", "Explode", "Surge" (or their variations, such as "Witnessed", "Exploded", "Explosion", "Surged", "Surging", etc.) anywhere in the title or hooks. Choose alternative action/drama verbs and nouns (e.g., Rise, Growth, Climb, Boom, Leap, Battle, Dominance).
+- CRITICAL: VARY TITLE STRUCTURE. Do NOT start titles with predictable, repetitive formulas (e.g. "The Rise of...", "The Rise and Fall of...", "Witness the..."). Force variety by using questions, comparisons, milestones, or action verbs.
 - Description: 2 sentences max
 - Tags: 10 relevant tags
 
@@ -80,7 +86,24 @@ Return ONLY valid JSON:
                         raw = re.sub(r"^```(?:json)?\s*", "", raw)
                         raw = re.sub(r"\s*```$", "", raw)
 
-                    result = json.loads(raw)
+                    parsed = json.loads(raw)
+                    
+                    # Validate titles against banned words
+                    long_title = parsed.get("long_form", {}).get("title", "")
+                    short_title = parsed.get("short", {}).get("title", "")
+                    
+                    def contains_banned(t: str) -> bool:
+                        t_lower = t.lower()
+                        return any(w in t_lower for w in ["witness", "explod", "explos", "surg"])
+                        
+                    if contains_banned(long_title) or contains_banned(short_title):
+                        print(f"[metadata] Attempt {attempt+1}: Generated title contains banned words. Retrying...")
+                        if attempt == max_json_retries - 1:
+                            print("[metadata] Last attempt failed validation. Programmatically cleaning titles.")
+                            result = parsed
+                            break
+                        continue
+                    result = parsed
                     break  # Success!
                 except json.JSONDecodeError as e:
                     if attempt == max_json_retries - 1:
@@ -116,7 +139,7 @@ Return ONLY valid JSON:
             }
 
     # Validate structure (in case the generated JSON was partially valid but missing keys/values)
-    fallback_topic = topic_info.get("topic") or "Data Visualization"
+    fallback_topic = clean_banned_words(topic_info.get("topic") or "Data Visualization")
     fallback_start = extreme_segment.get("start_year") or ""
     fallback_end = extreme_segment.get("end_year") or ""
 
@@ -147,9 +170,12 @@ Return ONLY valid JSON:
                 elif field == "tags":
                     result[key]["tags"] = ["data", "visualization", "history", "statistics"]
             else:
-                # Clean up whitespace
+                # Clean up whitespace and programmatically clean banned words for titles
                 if field != "tags":
-                    result[key][field] = val.strip()
+                    val_clean = val.strip()
+                    if field == "title":
+                        val_clean = clean_banned_words(val_clean)
+                    result[key][field] = val_clean
 
         # Enforce YouTube title limit of 100 characters
         title_val = result[key]["title"]

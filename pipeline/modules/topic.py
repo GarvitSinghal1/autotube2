@@ -26,13 +26,18 @@ Choose a topic that will hook a general audience in the first 2 seconds.
 
 CRITICAL GUIDELINES:
 1. Avoid dry academic, political development, or clinical metrics (e.g. government spending, energy efficiency, Gini coefficients, pollution rates, standard disease prevalence/treatment rates).
-2. Prioritize high-retention concepts: global conflicts, weapon/nuclear proliferation, space exploration milestones, lifestyles/addictions (alcohol, cigarette sales), historical crime/suicide trends, natural disasters, major epidemics/plagues, or massive wealth concentration (billionaires).
-3. Focus on "Emotion + Data": Prioritize datasets that trigger strong feelings of rivalry, nostalgia, controversy, or dramatic rise-and-fall stories (e.g. "Most Hated Apps", "AI Companies Taking Over", "YouTubers Who Fell Off", "Games That Died").
-4. Keep the winner or outcome UNCLEAR in the title: If viewers know the outcome instantly, retention tanks. Avoid titles that spoil the ending (e.g., Bad: "USA dominates GDP", Good: "The Battle for Global GDP dominance" or "The Fastest Growing Economies"). Keep the outcome uncertain to build suspense.
+2. STRONGLY PREFER these high-engagement categories in this priority order:
+   - TIER 1 (most wanted): space exploration, satellites, rocket launches, AI/tech adoption, internet/mobile growth, billionaires & wealth, economic dominance races (GDP, trade), sports records
+   - TIER 2: population milestones, urbanization booms, historical pandemics/plagues, drug/alcohol/tobacco trends, natural disasters, extinction/wildlife crises
+   - TIER 3 (use only if nothing better available): crime, homicide, suicide trends
+   - AVOID (exhausted/overused): nuclear weapons, nuclear tests, armed conflict deaths, war casualties, terrorism — these have been done repeatedly.
+3. Focus on "Emotion + Data": Prioritize datasets that trigger strong feelings of rivalry, nostalgia, controversy, or dramatic rise-and-fall stories.
+4. Keep the winner or outcome UNCLEAR in the title: Avoid titles that spoil the ending. Build suspense.
 5. The title ("topic") MUST be an engaging, clickable YouTube hook rather than repeating the dry dataset name.
 6. Based on your knowledge of the selected dataset, suggest the unit of measurement:
-   - suggested_full_unit: the complete, formal unit name (e.g., "liters of pure alcohol per capita", "number of nuclear weapons", "metric tons per capita")
-   - suggested_short_unit: a very short version (1 word or abbreviation/symbol, e.g., "liters", "weapons", "tons", "%", "$") to display next to numbers on the chart.
+   - suggested_full_unit: the complete, formal unit name (e.g., "liters of pure alcohol per capita", "number of satellites", "metric tons per capita")
+   - suggested_short_unit: a very short version (1 word or abbreviation/symbol, e.g., "liters", "satellites", "tons", "%", "$") to display next to numbers on the chart.
+7. CRITICAL: BANNED WORDS. Do NOT use the words "Witness", "Explode", "Surge" (or their variations, such as "Witnessed", "Exploded", "Explosion", "Surged", "Surging", etc.) anywhere in the topic title. Choose alternative action/drama verbs and nouns (e.g., Rise, Growth, Climb, Boom, Leap, Battle, Dominance).
 
 You MUST respond with ONLY a valid JSON object, no markdown, no explanation:
 {
@@ -52,25 +57,38 @@ _FALLBACK_OWID_FOLDERS = [
 ]
 
 # Keyword filters to guarantee interesting topics on YouTube
+# TIER 1: Space & Tech (highest priority — most wanted)
 INTERESTING_KEYWORDS = [
-    "military", "weapon", "nuclear", "war", "conflict", "battle", "defense", "armaments",
-    "space", "nasa", "rocket", "exploration", "satellite",
-    "homicide", "crime", "murder", "suicide", "terrorism", "terrorist", "poaching", "fatality", "fatalities", "accident", "aviation",
-    "disaster", "earthquake", "tsunami", "volcano",
-    "alcohol", "beer", "wine", "drinking", "smoking", "tobacco", "cigarette", "drug", "addiction",
-    "billionaire", "top 1%", "wealth shares",
-    "olympic", "medal", "sports",
+    # Space & technology (TIER 1 — most wanted)
+    "space", "nasa", "rocket", "satellite", "spacecraft", "launch", "orbit", "iss", "astronaut",
+    "internet", "mobile", "smartphone", "broadband", "technology", "computer", "software", "ai",
+    # Economics & wealth (TIER 1)
+    "billionaire", "top 1%", "wealth shares", "gdp growth", "trade", "export", "import", "stock",
+    "economic", "richest",
+    # Sports (TIER 1)
+    "olympic", "medal", "sports", "football", "soccer", "basketball", "tennis", "chess",
+    # Population & demographics (TIER 2)
+    "population", "urbanization", "city", "birth rate", "fertility", "births", "mortality",
+    "migration", "immigration",
+    # Historical disasters & disease (TIER 2)
+    "disaster", "earthquake", "tsunami", "volcano", "hurricane", "famine",
     "pandemic", "epidemic", "plague", "influenza", "covid", "smallpox", "polio",
-    "whale", "extinction", "rhino",
+    # Lifestyle & addiction (TIER 2)
+    "alcohol", "beer", "wine", "drinking", "smoking", "tobacco", "cigarette", "drug", "addiction",
+    # Wildlife & environment drama (TIER 2)
+    "whale", "extinction", "rhino", "poaching", "deforestation",
+    # Crime & social (TIER 3 — use sparingly)
+    "homicide", "crime", "murder", "suicide", "accident", "aviation",
     "media coverage", "causes of death",
-    "fertility", "births",
     "iq data", "intelligence",
     "plastic waste",
-    # Demographic & global growth additions
-    "population", "urbanization", "city", "mortality"
 ]
 
 BORING_KEYWORDS = [
+    # Exhausted topics — pipeline has done too many of these, avoid
+    "nuclear", "weapon", "warfare", "military", "armed conflict", "conflict death", "war death",
+    "terrorism", "terrorist", "bomb",
+    # Dry academic / low-engagement
     "guinea", "worm", "diarrhea", "diarrheal", "deficiency", "malnutrition", "micronutrient",
     "tuberculosis", "malaria", "tetanus", "measles", "hepatitis", "meningitis", "encephalitis",
     "pertussis", "diphtheria", "leprosy", "trachoma", "onchocerciasis", "filariasis", "rabies",
@@ -80,9 +98,9 @@ BORING_KEYWORDS = [
     "education", "expenditure", "spending", "transparency", "yield", "attainment", "schooling", "literacy",
     "diet compositions", "macronutrient", "calorie", "protein", "fat supply", "fat intake", "nutrition", "food supply", "cereal allocation",
     "pm2.5", "pollution", "emission", "air quality", "pollutant", "co2", "ghg", "methane", "nitrous",
-    "gdp", "inequality", "poverty", "gini", "index", "povcalnet", "development", "mpi", "national poverty",
+    "inequality", "poverty", "gini", "povcalnet", "development", "mpi", "national poverty",
     "regime", "democracy", "political rights", "human rights", "civil liberties", "freedom house",
-    "prevalence", "incidence", "case rate", "treatment", "coverage", "at birth", "life stage"
+    "prevalence", "incidence", "case rate", "coverage", "at birth", "life stage"
 ]
 
 def _get_used_dataset_names() -> set[str]:
@@ -108,6 +126,44 @@ def _get_used_dataset_names() -> set[str]:
     except Exception as e:
         print(f"[topic] Failed to query uploads table: {e}")
         return set()
+
+
+def _get_recent_topics_from_log(n: int = 30) -> tuple[list[str], list[str]]:
+    """Read the last n run entries from run_log.json.
+
+    Returns:
+        (recent_topics, recent_urls): two lists of strings for context injection.
+        Topics are the human-readable video title strings.
+        URLs are the dataset URLs (used to cross-check dataset_map for name dedup).
+    """
+    from pipeline.config import RUN_LOG_PATH
+    import json
+
+    if not RUN_LOG_PATH.exists():
+        return [], []
+
+    try:
+        with open(RUN_LOG_PATH, "r", encoding="utf-8") as f:
+            records = json.load(f)
+    except Exception as e:
+        print(f"[topic] Could not read run_log.json: {e}")
+        return [], []
+
+    recent_topics: list[str] = []
+    recent_urls: list[str] = []
+    # Walk newest-first
+    for record in reversed(records):
+        topic = record.get("topic")
+        url = record.get("dataset_url")
+        if topic and isinstance(topic, str):
+            recent_topics.append(topic)
+        if url and isinstance(url, str):
+            recent_urls.append(url)
+        if len(recent_topics) >= n:
+            break
+
+    print(f"[topic] Loaded {len(recent_topics)} recent topics from run_log.json for dedup context.")
+    return recent_topics, recent_urls
 
 
 def _get_valid_datasets_from_db() -> list[dict]:
@@ -185,11 +241,22 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         dataset_names = fallback_names
         dataset_map = {}
 
-    # Merge ephemeral blacklist with persistently-used datasets
+    # 2. Load recent topic memory from run_log.json (works even when uploads table is empty)
+    recent_topics, recent_urls = _get_recent_topics_from_log(n=30)
+
+    # Build a set of recently-used dataset names by reverse-mapping URLs through dataset_map
+    url_to_name = {d["csv_url"]: d["name"] for d in db_datasets} if db_datasets else {}
+    recent_dataset_names_from_log = set()
+    for url in recent_urls:
+        name = url_to_name.get(url)
+        if name:
+            recent_dataset_names_from_log.add(name)
+
+    # Merge ephemeral blacklist + SQLite uploads + run_log recent names
     used_names = _get_used_dataset_names()
     if used_names:
-        print(f"[topic] Filtering out {len(used_names)} previously-uploaded datasets.")
-    exclude = (blacklist or set()) | used_names
+        print(f"[topic] Filtering out {len(used_names)} previously-uploaded datasets (uploads table).")
+    exclude = (blacklist or set()) | used_names | recent_dataset_names_from_log
     if exclude:
         dataset_names = [d for d in dataset_names if d not in exclude]
         
@@ -212,8 +279,22 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
 
     sample_size = min(40, len(candidate_names))
     sample_names = random.sample(candidate_names, sample_size)
-    
-    user_prompt = "Here are the available datasets. Pick the most fascinating one:\n\n" + "\n".join(sample_names)
+
+    # Build the user prompt with recent topic memory injected
+    recent_topics_block = ""
+    if recent_topics:
+        recent_topics_block = (
+            "\n\nRECENTLY USED TOPICS (DO NOT REPEAT these or anything thematically similar):\n"
+            + "\n".join(f"- {t}" for t in recent_topics)
+            + "\n\nPick something COMPLETELY DIFFERENT from the above list.\n"
+        )
+
+    user_prompt = (
+        "Here are the available datasets. Pick the most fascinating one:"
+        + recent_topics_block
+        + "\nAVAILABLE DATASETS:\n"
+        + "\n".join(sample_names)
+    )
 
     # 2. Define the Pydantic schema for structured output with a dynamic Enum
     from pydantic import BaseModel
@@ -297,9 +378,12 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         encoded_name = urllib.parse.quote(chosen_name)
         url = f"https://raw.githubusercontent.com/owid/owid-datasets/master/datasets/{encoded_name}/{encoded_name}.csv"
 
+    from pipeline.modules.gemini_helper import clean_banned_words
+    cleaned_topic = clean_banned_words(topic_title)
+
     final_result = {
         "dataset_name": chosen_name,
-        "topic": topic_title,
+        "topic": cleaned_topic,
         "description": topic_desc,
         "source": "Our World in Data",
         "url": url,

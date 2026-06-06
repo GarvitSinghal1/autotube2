@@ -202,15 +202,16 @@ def _generate_hook_and_metadata(
     reasons_list: list[str]
 ) -> dict:
     """Generate both the video hook and the YouTube upload metadata using a single Gemini call."""
-    from pipeline.modules.gemini_helper import build_gemini_client, generate_content_with_retry
+    from pipeline.modules.gemini_helper import build_gemini_client, generate_content_with_retry, clean_banned_words
     from pipeline.config import GEMINI_MODEL
     from google.genai import types
     from pydantic import BaseModel
     import json
     import re
+    import time
 
     # 1. Setup fallback dict structure
-    topic_title = topic_info.get("topic") or "Data Visualization"
+    topic_title = clean_banned_words(topic_info.get("topic") or "Data Visualization")
     source = topic_info.get("source") or "Our World in Data"
     clean_title = re.sub(r'[^\w\s]', '', topic_title)
     tags = [t.lower() for t in clean_title.split() if len(t) > 3][:12]
@@ -300,30 +301,61 @@ Your task is to generate the following elements:
    - Title: Informative, specific, includes full date range. (e.g. "How World GDP Changed From 1960 to 2023")
    - Description: 3-4 sentences explaining what the data shows, why it matters, and crediting the source.
    - Tags: 10-15 relevant tags for SEO.
+   - CRITICAL: BANNED WORDS. Do NOT use the words "Witness", "Explode", "Surge" (or their variations, such as "Witnessed", "Exploded", "Explosion", "Surged", "Surging", etc.) anywhere in the title. Choose alternative action/drama verbs and nouns (e.g., Rise, Growth, Climb, Boom, Leap, Battle, Dominance).
 
    VIDEO 2 — SHORT (60 sec, highlights the extreme segment):
    - Title: Punchy, hook-driven, highlights the most dramatic moment, ends with " #Shorts".
    - CRITICAL: Keep the final winner or outcome UNCLEAR in the title to create suspense and keep viewers watching (e.g. Bad: "USA Dominates GDP #Shorts", Good: "The Battle for Global GDP Dominance #Shorts" or "Who Overtook Japan's Economy? #Shorts").
-   - CRITICAL: Focus on "emotion + data" (rivalry, rise/fall, nostalgia, or controversy) and highlight the extreme percentage growth (e.g., "Exploded 1455%"), massive multipliers (e.g., "Grew 15x"), or dramatic shifts without spoiling who wins in the end.
+   - CRITICAL: Focus on "emotion + data" (rivalry, rise/fall, nostalgia, or controversy) and highlight the extreme percentage growth (e.g., "Grew 1455%"), massive multipliers (e.g., "Grew 15x"), or dramatic shifts without spoiling who wins in the end.
+   - CRITICAL: BANNED WORDS. Do NOT use the words "Witness", "Explode", "Surge" (or their variations, such as "Witnessed", "Exploded", "Explosion", "Surged", "Surging", etc.) anywhere in the title or hooks. Choose alternative action/drama verbs and nouns (e.g., Rise, Growth, Climb, Boom, Leap, Battle, Dominance).
+   - CRITICAL: VARY TITLE STRUCTURE. Do NOT start titles with predictable, repetitive formulas (e.g. "The Rise of...", "The Rise and Fall of...", "Witness the..."). Force variety by using questions, comparisons, milestones, or action verbs.
    - Description: 2 sentences max.
    - Tags: 10 relevant tags.
 
 Return ONLY a valid JSON object matching the requested schema.
 """
 
+    max_json_retries = 3
+    res = None
+    for attempt in range(max_json_retries):
+        try:
+            response = generate_content_with_retry(
+                client=client,
+                model=GEMINI_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=CombinedOutputs,
+                    temperature=0.4 + attempt * 0.1,
+                ),
+            )
+            parsed = json.loads(response.text.strip())
+            
+            # Check for banned words in generated titles
+            def contains_banned(t: str) -> bool:
+                t_lower = t.lower()
+                return any(w in t_lower for w in ["witness", "explod", "explos", "surg"])
+                
+            if contains_banned(parsed.get("long_title", "")) or contains_banned(parsed.get("short_title", "")):
+                print(f"[analyzer] Attempt {attempt+1}: Generated title contains banned words. Retrying...")
+                if attempt == max_json_retries - 1:
+                    print("[analyzer] Last attempt failed validation. Programmatically cleaning titles.")
+                    res = parsed
+                    break
+                continue
+            res = parsed
+            break
+        except Exception as e:
+            if attempt == max_json_retries - 1:
+                print(f"[analyzer] Gemini generation failed after {max_json_retries} attempts: {e}. Using fallback.")
+                return fallback_result
+            print(f"[analyzer] Gemini generation failed: {e}. Retrying...")
+            time.sleep(2)
+
+    if not res:
+        return fallback_result
+
     try:
-        response = generate_content_with_retry(
-            client=client,
-            model=GEMINI_MODEL,
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=CombinedOutputs,
-                temperature=0.4,
-            ),
-        )
-        res = json.loads(response.text.strip())
-        
         # Validate and clean hook
         hook = res.get("hook")
         if not hook or not isinstance(hook, str) or not hook.strip():
@@ -331,18 +363,18 @@ Return ONLY a valid JSON object matching the requested schema.
         else:
             hook = hook.strip()
 
-        # Validate and clean titles
+        # Validate and clean titles (applying programmatic clean to guarantee zero banned words)
         long_title = res.get("long_title")
         if not long_title or not isinstance(long_title, str) or not long_title.strip():
             long_title = fallback_result["long_title"]
         else:
-            long_title = long_title.strip()
+            long_title = clean_banned_words(long_title.strip())
 
         short_title = res.get("short_title")
         if not short_title or not isinstance(short_title, str) or not short_title.replace("#Shorts", "").replace("#shorts", "").strip():
             short_title = fallback_result["short_title"]
         else:
-            short_title = short_title.strip()
+            short_title = clean_banned_words(short_title.strip())
             if not short_title.endswith("#Shorts"):
                 short_title = short_title + " #Shorts"
 

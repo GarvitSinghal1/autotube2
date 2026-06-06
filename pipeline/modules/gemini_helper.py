@@ -181,3 +181,78 @@ def generate_content_with_retry(client, model: str, contents, config=None, max_r
                 break  # Exit inner while loop to move to the next outer attempt
 
 
+def clean_banned_words(title: str) -> str:
+    """Strip or replace banned words ('Witness', 'Explode', 'Surge') and their variations case-insensitively."""
+    import re
+    if not title:
+        return ""
+    
+    # Remove leading "Witness the " or "Witnessing the " case-insensitively
+    title = re.sub(r"^[Ww]itness\s+the\s+", "", title)
+    title = re.sub(r"^[Ww]itnessing\s+the\s+", "", title)
+    
+    def replace_case(matched_text, replacement):
+        if matched_text.isupper():
+            return replacement.upper()
+        if matched_text[0].isupper():
+            return replacement.capitalize()
+        return replacement.lower()
+
+    def repl_explode(match):
+        w = match.group(0)
+        if w.lower().endswith("d"):
+            return replace_case(w, "rose")
+        if w.lower().endswith("s"):
+            return replace_case(w, "rises")
+        if w.lower().endswith("ing"):
+            return replace_case(w, "rising")
+        return replace_case(w, "rise")
+
+    def repl_surge(match):
+        w = match.group(0)
+        if w.lower().endswith("d"):
+            return replace_case(w, "rose")
+        if w.lower().endswith("s"):
+            return replace_case(w, "rises")
+        if w.lower().endswith("ing"):
+            return replace_case(w, "rising")
+        return replace_case(w, "growth")
+
+    def repl_witness(match):
+        w = match.group(0)
+        if w.lower().endswith("ed"):
+            return replace_case(w, "watched")
+        if w.lower().endswith("ing"):
+            return replace_case(w, "watching")
+        if w.lower().endswith("es"):
+            return replace_case(w, "watches")
+        return replace_case(w, "watch")
+
+    def repl_explosion(match):
+        w = match.group(0)
+        if w.lower().endswith("s"):
+            return replace_case(w, "booms")
+        return replace_case(w, "boom")
+
+    def repl_explosive(match):
+        w = match.group(0)
+        return replace_case(w, "dramatic")
+
+    # Perform regex replacements using matching case functions
+    title = re.sub(r"\bexplosion[s]?\b", repl_explosion, title, flags=re.I)
+    title = re.sub(r"\bexplosive\b", repl_explosive, title, flags=re.I)
+    title = re.sub(r"\bexplode[sd]?\b", repl_explode, title, flags=re.I)
+    title = re.sub(r"\bexploding\b", repl_explode, title, flags=re.I)
+    title = re.sub(r"\bsurge[sd]?\b", repl_surge, title, flags=re.I)
+    title = re.sub(r"\bsurging\b", repl_surge, title, flags=re.I)
+    title = re.sub(r"\bwitness[ed]*\b", repl_witness, title, flags=re.I)
+    title = re.sub(r"\bwitnesses\b", repl_witness, title, flags=re.I)
+    title = re.sub(r"\bwitnessing\b", repl_witness, title, flags=re.I)
+    
+    # Clean up double spaces if any
+    title = re.sub(r"\s+", " ", title).strip()
+    return title
+
+
+
+
