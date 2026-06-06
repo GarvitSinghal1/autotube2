@@ -1999,5 +1999,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-06T10:06:00.439754+00:00",
+    "topic": "The World's Most Dangerous Places: 1990 vs 2020",
+    "dataset_url": "https://ourworldindata.org/grapher/homicide-rate-1990-vs-2020.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2006,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/k_J9i-qhRbw",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
