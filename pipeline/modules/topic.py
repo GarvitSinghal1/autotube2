@@ -128,7 +128,7 @@ def _get_used_dataset_names() -> set[str]:
         return set()
 
 
-def _get_recent_topics_from_log(n: int = 30) -> tuple[list[str], list[str]]:
+def _get_recent_topics_from_log(n: int = 20) -> tuple[list[str], list[str]]:
     """Read the last n run entries from run_log.json.
 
     Returns:
@@ -164,6 +164,41 @@ def _get_recent_topics_from_log(n: int = 30) -> tuple[list[str], list[str]]:
 
     print(f"[topic] Loaded {len(recent_topics)} recent topics from run_log.json for dedup context.")
     return recent_topics, recent_urls
+
+
+def _get_recent_thematic_keywords(recent_topics: list[str], recent_names: list[str]) -> set[str]:
+    """Extract key thematic keywords from recent topics/dataset names to avoid repetition."""
+    import re
+    stop_words = {
+        "world", "data", "global", "total", "share", "number", "rate", "ratio", 
+        "change", "years", "year", "people", "countries", "country", "million", 
+        "billion", "capita", "percent", "percentage", "index", "value", "level", 
+        "state", "states", "united", "national", "deaths", "death", "cases", "case",
+        "chart", "video", "shorts", "form", "long", "short", "about", "above",
+        "across", "against", "along", "among", "around", "at", "before", "behind",
+        "below", "beneath", "beside", "between", "beyond", "but", "by", "down",
+        "during", "except", "for", "from", "in", "inside", "into", "like", "near",
+        "of", "off", "on", "onto", "out", "outside", "over", "past", "since",
+        "through", "throughout", "till", "to", "toward", "towards", "under",
+        "underneath", "until", "up", "upon", "with", "within", "without"
+    }
+    
+    keywords = set()
+    all_texts = recent_topics + recent_names
+    for text in all_texts:
+        if not text:
+            continue
+        clean = re.sub(r"[^a-zA-Z\s]", " ", text.lower())
+        words = clean.split()
+        for w in words:
+            # singularize common plurals
+            w_sing = w[:-1] if w.endswith("s") and len(w) > 4 else w
+            if len(w_sing) > 3 and w_sing not in stop_words and w not in stop_words:
+                keywords.add(w_sing)
+                keywords.add(w)
+                
+    return keywords
+
 
 
 def _get_valid_datasets_from_db() -> list[dict]:
@@ -242,7 +277,7 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
         dataset_map = {}
 
     # 2. Load recent topic memory from run_log.json (works even when uploads table is empty)
-    recent_topics, recent_urls = _get_recent_topics_from_log(n=30)
+    recent_topics, recent_urls = _get_recent_topics_from_log(n=20)
 
     # Build a set of recently-used dataset names by reverse-mapping URLs through dataset_map
     url_to_name = {d["csv_url"]: d["name"] for d in db_datasets} if db_datasets else {}
@@ -260,16 +295,32 @@ def discover_topic(blacklist: Optional[set[str]] = None) -> dict:
     if exclude:
         dataset_names = [d for d in dataset_names if d not in exclude]
         
+    # Extract thematic keywords from recent topics/dataset names
+    recent_keywords = _get_recent_thematic_keywords(recent_topics, list(recent_dataset_names_from_log))
+    if recent_keywords:
+        print(f"[topic] Extracted recent thematic keywords: {sorted(list(recent_keywords))}")
+
     # Filter datasets to keep only potentially interesting ones
     interesting_names = []
     for d in dataset_names:
         name_lower = d.lower()
         has_interesting = any(w in name_lower for w in INTERESTING_KEYWORDS)
         has_boring = any(w in name_lower for w in BORING_KEYWORDS)
-        if has_interesting and not has_boring:
+        
+        # Check thematic keyword overlap
+        has_thematic_overlap = False
+        d_clean = re.sub(r"[^a-zA-Z\s]", " ", name_lower)
+        d_words = d_clean.split()
+        for w in d_words:
+            w_sing = w[:-1] if w.endswith("s") and len(w) > 4 else w
+            if w in recent_keywords or w_sing in recent_keywords:
+                has_thematic_overlap = True
+                break
+                
+        if has_interesting and not has_boring and not has_thematic_overlap:
             interesting_names.append(d)
             
-    print(f"[topic] Filtered {len(dataset_names)} datasets down to {len(interesting_names)} interesting ones.")
+    print(f"[topic] Filtered {len(dataset_names)} datasets down to {len(interesting_names)} interesting/non-repeated ones.")
     
     # Fallback to all datasets if filtering left too few
     if len(interesting_names) >= 10:
