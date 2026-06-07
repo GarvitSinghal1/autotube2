@@ -2071,5 +2071,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-07T04:06:23.977353+00:00",
+    "topic": "The Global Smoking Battle: Which Nations Are Kicking the Habit?",
+    "dataset_url": "https://ourworldindata.org/grapher/adults-smoking-2007-2018.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2003,
+      "end_year": 2022
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/bKz7cghzg7U",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
