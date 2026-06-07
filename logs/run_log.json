@@ -2095,5 +2095,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-07T10:31:46.822768+00:00",
+    "topic": "The World's Fading Heritage: Which Unique Breeds Are We Losing?",
+    "dataset_url": "https://ourworldindata.org/grapher/proportion-of-local-breeds-at-risk-of-extinction.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2011,
+      "end_year": 2025
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/D9VsfkWMh5s",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
