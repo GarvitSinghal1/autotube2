@@ -2167,5 +2167,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+  },
+  {
+    "timestamp": "2026-06-08T12:33:35.981587+00:00",
+    "topic": "The Ancient Battle for Wine Dominance: Who Produces the Most?",
+    "dataset_url": "https://ourworldindata.org/grapher/wine-production.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2013,
+      "end_year": 2023
+    },
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "fail"
+    },
+    "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
   }
 ]
