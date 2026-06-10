@@ -2335,5 +2335,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-10T11:40:23.636985+00:00",
+    "topic": "The World's Power Divide: Billions Connected, But Who's Still in the Dark?",
+    "dataset_url": "https://ourworldindata.org/grapher/number-of-people-with-and-without-electricity-access.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2003,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/j8YFptE9GpQ",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
