@@ -2311,5 +2311,29 @@
       "uploader": "fail"
     },
     "error": "RuntimeError: Upload failed: ('invalid_grant: Token has been expired or revoked.', {'error': 'invalid_grant', 'error_description': 'Token has been expired or revoked.'})"
+  },
+  {
+    "timestamp": "2026-06-10T09:40:14.865665+00:00",
+    "topic": "The Polio Fight's Hidden Challenge: A Twist in the Eradication Story",
+    "dataset_url": "https://ourworldindata.org/grapher/cases-of-paralytic-polio-from-vaccine-derived-viruses.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2009,
+      "end_year": 2023
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/87DRmCp_PB0",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
