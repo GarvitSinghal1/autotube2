@@ -378,7 +378,6 @@ def _normalize_entity(name: str) -> str:
     Returns:
         Cleaned entity name.
     """
-    # Common country name fixes
     replacements = {
         "United States of America": "United States",
         "USA": "United States",
@@ -395,10 +394,16 @@ def _normalize_entity(name: str) -> str:
         "Czechia": "Czech Republic",
         "Lao PDR": "Laos",
         "Congo, Dem. Rep.": "DR Congo",
+        "Democratic Republic of Congo": "DR Congo",
         "Egypt, Arab Rep.": "Egypt",
         "Venezuela, RB": "Venezuela",
         "Syrian Arab Republic": "Syria",
         "Yemen, Rep.": "Yemen",
+        "Côte d'Ivoire": "Ivory Coast",
+        "Cote d'Ivoire": "Ivory Coast",
+        "Myanmar (Burma)": "Myanmar",
+        "Timor-Leste": "East Timor",
+        "Eswatini": "Swaziland",
     }
 
     name = name.strip()
