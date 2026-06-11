@@ -221,7 +221,6 @@ def render_long_form(
             frame_number += 1
 
         # After this step is done, update prev_ranks to the END state of the step
-        prev_ranks = {e: r for e, r in enumerate(_rank_entities(next_vals).values())}
         prev_ranks = {e: rank for rank, e in enumerate(sorted(next_vals.keys(),
                                                               key=lambda k: next_vals[k], reverse=True))}
 
