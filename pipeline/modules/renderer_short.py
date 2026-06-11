@@ -1215,7 +1215,7 @@ def _load_world_geometry():
     try:
         import geopandas as gpd
         import ssl
-        from shapely.geometry import Polygon
+        from shapely.geometry import Polygon, MultiPolygon
         # Disable SSL verification for naturalearth download on macOS/proxies
         try:
             ssl._create_default_https_context = ssl._create_unverified_context
@@ -1295,19 +1295,43 @@ def _load_world_geometry():
         pak_kashmir = None
         chn_kashmir = None
 
+        def remove_holes(geom):
+            if geom.is_empty:
+                return geom
+            if geom.geom_type == "Polygon":
+                return Polygon(geom.exterior)
+            elif geom.geom_type == "MultiPolygon":
+                return MultiPolygon([Polygon(p.exterior) for p in geom.geoms])
+            return geom
+
+        def remove_slivers(geom, min_area=0.05):
+            if geom.is_empty:
+                return geom
+            if geom.geom_type == "Polygon":
+                return geom if geom.area >= min_area else Polygon()
+            elif geom.geom_type == "MultiPolygon":
+                valid_polys = [p for p in geom.geoms if p.area >= min_area]
+                if not valid_polys:
+                    return Polygon()
+                elif len(valid_polys) == 1:
+                    return valid_polys[0]
+                else:
+                    return MultiPolygon(valid_polys)
+            return geom
+
         # 1. Extract and subtract AJK+GB from Pakistan
         pak_idx = world[world["iso_a3"] == "PAK"].index
         if not pak_idx.empty:
             pak_geom = world.loc[pak_idx[0], "geometry"]
             pak_kashmir = pak_geom.intersection(ajk_gb_capture)
-            world.loc[pak_idx[0], "geometry"] = pak_geom.difference(pak_kashmir)
+            world.loc[pak_idx[0], "geometry"] = remove_slivers(pak_geom.difference(pak_kashmir))
 
         # 2. Extract and subtract Aksai Chin from China
         chn_idx = world[world["iso_a3"] == "CHN"].index
         if not chn_idx.empty:
             chn_geom = world.loc[chn_idx[0], "geometry"]
             chn_kashmir = chn_geom.intersection(aksai_chin_capture)
-            world.loc[chn_idx[0], "geometry"] = chn_geom.difference(chn_kashmir)
+            world.loc[chn_idx[0], "geometry"] = remove_slivers(chn_geom.difference(chn_kashmir))
 
         # 3. Union both parts with India
         ind_idx = world[world["iso_a3"] == "IND"].index
@@ -1317,7 +1341,10 @@ def _load_world_geometry():
                 ind_geom = ind_geom.union(pak_kashmir)
             if chn_kashmir is not None and not chn_kashmir.is_empty:
                 ind_geom = ind_geom.union(chn_kashmir)
-            world.loc[ind_idx[0], "geometry"] = ind_geom
+            # Apply buffer closing and remove holes/slivers
+            world.loc[ind_idx[0], "geometry"] = remove_slivers(
+                remove_holes(ind_geom.buffer(0.005).buffer(-0.005))
+            )
 
         return world
     except Exception as e:
