@@ -87,6 +87,7 @@ GEMINI_MODEL = "gemini-2.5-flash"
 
 # ── Pipeline Modes ───────────────────────────────────────────────────────────
 ONLY_SHORTS = True
+DRAW_MAP_LABELS = False
 
 # ── Chart types ──────────────────────────────────────────────────────────────
 CHART_TYPES = [

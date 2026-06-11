@@ -27,7 +27,7 @@ import pandas as pd
 from pipeline.config import (
     ACCENT_COLORS, FPS, FRAMES_SHORT_DIR, SHORT_FINAL,
     SHORT_MIN_DURATION, SHORT_MAX_DURATION, MUSIC_DIR,
-    DEFAULT_VOLUME, TOP_N_ENTITIES, TMP_DIR,
+    DEFAULT_VOLUME, TOP_N_ENTITIES, TMP_DIR, DRAW_MAP_LABELS,
 )
 from pipeline.modules.renderer_long import (
     SLOTS, OFF_SCREEN_Y, BAR_HEIGHT,
@@ -70,11 +70,15 @@ def render_short(
     end_yr   = extreme_segment["end_year"]
     print(f"[renderer_short] Rendering Short ({chart_type}): {start_yr}–{end_yr}")
 
+    # Use unique directories per chart type to support safe concurrent execution
+    frames_dir = TMP_DIR / f"frames_short_{chart_type}"
+    output_path = TMP_DIR / f"short_{chart_type}.mp4"
+
     import shutil
-    if FRAMES_SHORT_DIR.exists():
-        print(f"[renderer_short] Cleaning up existing frames in {FRAMES_SHORT_DIR}...")
-        shutil.rmtree(FRAMES_SHORT_DIR, ignore_errors=True)
-    FRAMES_SHORT_DIR.mkdir(parents=True, exist_ok=True)
+    if frames_dir.exists():
+        print(f"[renderer_short] Cleaning up existing frames in {frames_dir}...")
+        shutil.rmtree(frames_dir, ignore_errors=True)
+    frames_dir.mkdir(parents=True, exist_ok=True)
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
     # Filter to the extreme segment window
@@ -96,16 +100,16 @@ def render_short(
 
     # Route to the appropriate renderer
     if chart_type == "line_chart_race":
-        path = _render_line_chart(df_seg, topic_info, extreme_segment, entity_colors)
+        path = _render_line_chart(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
     elif chart_type == "area_chart":
-        path = _render_area_chart(df_seg, topic_info, extreme_segment, entity_colors)
+        path = _render_area_chart(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
     elif chart_type == "bubble_chart":
-        path = _render_bubble_chart(df_seg, topic_info, extreme_segment, entity_colors)
+        path = _render_bubble_chart(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
     elif chart_type == "map_animation":
-        path = _render_map_chart(df_seg, topic_info, extreme_segment, entity_colors)
+        path = _render_map_chart(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
     else:
         # Default: bar_chart_race
-        path = _render_bar_chart_race(df_seg, topic_info, extreme_segment, entity_colors)
+        path = _render_bar_chart_race(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
 
     print(f"[renderer_short] Output: {path}")
     return path, entity_colors
@@ -140,6 +144,7 @@ def _render_intro_frames(
     wrapped_title: str,
     background_draw_fn,
     frame_number: int,
+    frames_dir: Optional[Path] = None,
 ) -> int:
     """Render the intro card with hook → title transition.
 
@@ -149,10 +154,14 @@ def _render_intro_frames(
         wrapped_title: Pre-wrapped title text.
         background_draw_fn: Callable(fig, ax) to draw the background chart state.
         frame_number: Starting frame number.
+        frames_dir: Output frames directory.
 
     Returns:
         Next frame_number.
     """
+    if frames_dir is None:
+        frames_dir = FRAMES_SHORT_DIR
+
     for f in range(SHORT_INTRO_FRAMES):
         fig.clf()
         fig.patch.set_facecolor("#000000")
@@ -205,7 +214,7 @@ def _render_intro_frames(
             )
 
         fig.savefig(
-            FRAMES_SHORT_DIR / f"frame_{frame_number:05d}.png",
+            frames_dir / f"frame_{frame_number:05d}.png",
             dpi=100, facecolor="#000000", pad_inches=0,
             pil_kwargs={"compress_level": 1},
         )
@@ -262,10 +271,12 @@ def _draw_frame_chrome(
     overlay_watermark(fig, x=0.04, y=0.04, size=55, alpha=0.22)
 
 
-def _save_frame(fig: plt.Figure, frame_number: int) -> None:
+def _save_frame(fig: plt.Figure, frame_number: int, frames_dir: Optional[Path] = None) -> None:
     """Save a figure as a PNG frame."""
+    if frames_dir is None:
+        frames_dir = FRAMES_SHORT_DIR
     fig.savefig(
-        FRAMES_SHORT_DIR / f"frame_{frame_number:05d}.png",
+        frames_dir / f"frame_{frame_number:05d}.png",
         dpi=100, facecolor="#000000", pad_inches=0,
         pil_kwargs={"compress_level": 1},
     )
@@ -280,6 +291,8 @@ def _render_bar_chart_race(
     topic_info: dict,
     extreme_segment: dict,
     entity_colors: dict,
+    frames_dir: Path,
+    output_path: Path,
 ) -> Path:
     """Render bar chart race Short."""
     start_yr = extreme_segment["start_year"]
@@ -317,9 +330,9 @@ def _render_bar_chart_race(
 
     def draw_bg(fig, ax):
         _draw_bar_chart_frame(ax, fig, entities_data_first, "", "", str(start_yr),
-                              topic_info, save=False)
+                               topic_info, save=False)
 
-    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0)
+    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0, frames_dir)
 
     # Recreate axes
     fig.clf()
@@ -376,7 +389,7 @@ def _render_bar_chart_race(
 
             _draw_bar_chart_frame(ax, fig, entities_data, wrapped_title, source,
                                   date_label, topic_info)
-            _save_frame(fig, frame_number)
+            _save_frame(fig, frame_number, frames_dir)
             frame_number += 1
 
         prev_ranks = {e: r for r, e in enumerate(
@@ -387,13 +400,13 @@ def _render_bar_chart_race(
     for _ in range(FPS * 1):
         _draw_bar_chart_frame(ax, fig, entities_data, wrapped_title, source,
                               date_label, topic_info)
-        _save_frame(fig, frame_number)
+        _save_frame(fig, frame_number, frames_dir)
         frame_number += 1
 
     plt.close(fig)
     print(f"[renderer_short] Total frames: {frame_number}")
-    _encode_short(FRAMES_SHORT_DIR, SHORT_FINAL)
-    return SHORT_FINAL
+    _encode_short(frames_dir, output_path)
+    return output_path
 
 
 def _draw_bar_chart_frame(
@@ -481,6 +494,8 @@ def _render_line_chart(
     topic_info: dict,
     extreme_segment: dict,
     entity_colors: dict,
+    frames_dir: Path,
+    output_path: Path,
 ) -> Path:
     """Render animated line chart Short for 2–5 entities."""
     start_yr = extreme_segment["start_year"]
@@ -529,7 +544,7 @@ def _render_line_chart(
             ax.plot([years[0]], [entity_series[entity][0]], "o",
                     color=color, markersize=8, alpha=0.6)
 
-    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0)
+    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0, frames_dir)
 
     fig.clf()
     fig.patch.set_facecolor("#000000")
@@ -605,18 +620,18 @@ def _render_line_chart(
                 )
 
             _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
-            _save_frame(fig, frame_number)
+            _save_frame(fig, frame_number, frames_dir)
             frame_number += 1
 
     # Hold last frame
     for _ in range(FPS * 1):
-        _save_frame(fig, frame_number)
+        _save_frame(fig, frame_number, frames_dir)
         frame_number += 1
 
     plt.close(fig)
     print(f"[renderer_short] Total frames: {frame_number}")
-    _encode_short(FRAMES_SHORT_DIR, SHORT_FINAL)
-    return SHORT_FINAL
+    _encode_short(frames_dir, output_path)
+    return output_path
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -628,6 +643,8 @@ def _render_area_chart(
     topic_info: dict,
     extreme_segment: dict,
     entity_colors: dict,
+    frames_dir: Path,
+    output_path: Path,
 ) -> Path:
     """Render filled area chart Short for a single metric."""
     start_yr = extreme_segment["start_year"]
@@ -669,7 +686,7 @@ def _render_area_chart(
         ax.set_xlim(x_min - 0.5, x_max + 0.5)
         ax.set_ylim(y_min, y_max)
 
-    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0)
+    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0, frames_dir)
 
     fig.clf()
     fig.patch.set_facecolor("#000000")
@@ -727,99 +744,87 @@ def _render_area_chart(
             )
 
             _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
-            _save_frame(fig, frame_number)
+            _save_frame(fig, frame_number, frames_dir)
             frame_number += 1
 
     # Hold last frame
     for _ in range(FPS * 1):
-        _save_frame(fig, frame_number)
+        _save_frame(fig, frame_number, frames_dir)
         frame_number += 1
 
     plt.close(fig)
     print(f"[renderer_short] Total frames: {frame_number}")
-    _encode_short(FRAMES_SHORT_DIR, SHORT_FINAL)
-    return SHORT_FINAL
+    _encode_short(frames_dir, output_path)
+    return output_path
 
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CHART TYPE 4: BUBBLE CHART
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _pack_circles(entities_radii: list[tuple[str, float]], center_x: float, center_y: float):
-    """Deterministic spiral-based circle packing.
-
-    Places the largest circle at center, then places subsequent circles
-    in a tight spiral around already-placed circles.
-
-    Args:
-        entities_radii: List of (entity_name, radius) sorted by radius descending.
-        center_x: X center of the layout area.
-        center_y: Y center of the layout area.
-
-    Returns:
-        Dict mapping entity name to (x, y) position.
-    """
-    positions = {}
-    if not entities_radii:
-        return positions
-
-    # Place largest at center
-    positions[entities_radii[0][0]] = (center_x, center_y)
-
-    for idx in range(1, len(entities_radii)):
-        ent, r = entities_radii[idx]
-        best_pos = None
-        best_dist = float('inf')
-
-        # Try angles around each already-placed circle
-        for placed_ent, (px, py) in list(positions.items()):
-            placed_r = dict(entities_radii)[placed_ent]
-            target_dist = placed_r + r + 4.0  # 4 units gap
-
-            for angle_deg in range(0, 360, 15):
-                angle = np.radians(angle_deg)
-                cx = px + target_dist * np.cos(angle)
-                cy = py + target_dist * np.sin(angle)
-
-                # Check overlap with all placed circles
-                overlap = False
-                for other_ent, (ox, oy) in positions.items():
-                    other_r = dict(entities_radii)[other_ent]
-                    if np.hypot(cx - ox, cy - oy) < r + other_r + 3.0:
-                        overlap = True
-                        break
-
-                if not overlap:
-                    dist_to_center = np.hypot(cx - center_x, cy - center_y)
-                    if dist_to_center < best_dist:
-                        best_dist = dist_to_center
-                        best_pos = (cx, cy)
-
-        if best_pos is None:
-            # Fallback: spiral outward from center
-            for spiral_r in np.arange(r + 5, 80, 3):
-                for angle_deg in range(0, 360, 10):
-                    angle = np.radians(angle_deg)
-                    cx = center_x + spiral_r * np.cos(angle)
-                    cy = center_y + spiral_r * np.sin(angle)
-                    overlap = False
-                    for other_ent, (ox, oy) in positions.items():
-                        other_r_val = dict(entities_radii)[other_ent]
-                        if np.hypot(cx - ox, cy - oy) < r + other_r_val + 3.0:
-                            overlap = True
-                            break
-                    if not overlap:
-                        best_pos = (cx, cy)
-                        break
-                if best_pos:
-                    break
-
-        if best_pos is None:
-            best_pos = (center_x + idx * 8, center_y)
-
-        positions[ent] = best_pos
-
-    return positions
+def _run_bubble_physics_step(positions, velocities, radii, center_x, center_y, axes_height, dt=0.5):
+    """Run a single sub-step of the force-directed bubble collision physics."""
+    forces = {ent: np.array([0.0, 0.0]) for ent in positions}
+    
+    # 1. Gravity attraction to center of screen
+    gravity = 0.06
+    for ent in positions:
+        if radii[ent] <= 0.01:
+            continue
+        forces[ent] += (np.array([center_x, center_y]) - positions[ent]) * gravity
+        
+    # 2. Pairwise bubble-bubble repulsion force to prevent overlap
+    ent_list = list(positions.keys())
+    for i in range(len(ent_list)):
+        entA = ent_list[i]
+        rA = radii[entA]
+        if rA <= 0.01:
+            continue
+        for j in range(i + 1, len(ent_list)):
+            entB = ent_list[j]
+            rB = radii[entB]
+            if rB <= 0.01:
+                continue
+                
+            delta = positions[entA] - positions[entB]
+            dist = np.hypot(delta[0], delta[1])
+            # Allow organic overlap up to 5% of combined radii
+            target_dist = (rA + rB) * 0.95
+            
+            if dist < target_dist:
+                if dist < 0.001:
+                    # Resolve identical coordinates
+                    angle = np.random.uniform(0, 2 * np.pi)
+                    delta = np.array([np.cos(angle), np.sin(angle)]) * 0.01
+                    dist = 0.01
+                
+                overlap = target_dist - dist
+                dir_vector = delta / dist
+                # Force is proportional to overlap amount
+                f = dir_vector * overlap * 0.35
+                
+                forces[entA] += f
+                forces[entB] -= f
+                
+    # 3. Update velocity and position with friction/damping
+    damping = 0.55
+    for ent in positions:
+        if radii[ent] <= 0.01:
+            # Keep inactive/invisible bubbles centered with small noise to prevent drift
+            positions[ent] = np.array([
+                center_x + np.random.uniform(-1.0, 1.0),
+                center_y + np.random.uniform(-1.0, 1.0)
+            ])
+            velocities[ent] = np.array([0.0, 0.0])
+            continue
+            
+        velocities[ent] = (velocities[ent] + forces[ent] * dt) * damping
+        positions[ent] = positions[ent] + velocities[ent] * dt
+        
+        # Keep bubbles fully inside viewable screen boundaries
+        r = radii[ent]
+        positions[ent][0] = np.clip(positions[ent][0], r + 3.0, 97.0 - r)
+        positions[ent][1] = np.clip(positions[ent][1], r + 3.0, axes_height - r - 3.0)
 
 
 def _render_bubble_chart(
@@ -827,11 +832,13 @@ def _render_bubble_chart(
     topic_info: dict,
     extreme_segment: dict,
     entity_colors: dict,
+    frames_dir: Path,
+    output_path: Path,
 ) -> Path:
     """Render animated bubble chart Short — bubble size = value.
 
-    Uses deterministic spiral packing for clean non-overlapping layout,
-    outer glow rings for depth, and external labels for small bubbles.
+    Uses a force-directed layout simulation updated frame-by-frame to keep
+    bubble positions fluid, organic, and overlapping naturally without fly-throughs.
     """
     start_yr = extreme_segment["start_year"]
     time_steps, step_values = _build_step_values(df_seg)
@@ -855,20 +862,6 @@ def _render_bubble_chart(
     axes_aspect = 13.44 / 9.72
     axes_height = 100.0 * axes_aspect  # ~138.27
 
-    # Intro
-    def draw_bg(fig, ax):
-        ax.set_facecolor("#000000")
-        ax.set_xlim(0, 100)
-        ax.set_ylim(0, axes_height)
-        ax.set_aspect('equal')
-        ax.set_axis_off()
-
-    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0)
-
-    fig.clf()
-    fig.patch.set_facecolor("#000000")
-    ax = fig.add_axes([0.05, 0.10, 0.90, 0.70])
-
     center_x = 50.0
     center_y = axes_height / 2.0
 
@@ -876,44 +869,123 @@ def _render_bubble_chart(
     all_step_vals = [v for sv in step_values for v in sv.values() if v > 0]
     global_max_val = max(all_step_vals) if all_step_vals else 1.0
 
-    # Collect all entities that ever appear
-    all_entities_set = set()
-    for sv in step_values:
-        all_entities_set.update(sv.keys())
+    all_entities = sorted(df_seg["entity"].unique())
 
-    # Compute the MAXIMUM radius each entity will ever reach
-    # This determines the fixed layout positions
-    max_radii = {}
-    for ent in all_entities_set:
-        max_val = max(sv.get(ent, 0.0) for sv in step_values)
-        normalized = np.sqrt(max(max_val, 0) / global_max_val)
-        max_radii[ent] = 5.0 + normalized * 23.0
+    # Initialize positions and velocities
+    np.random.seed(42)
+    positions = {}
+    velocities = {}
+    for ent in all_entities:
+        positions[ent] = np.array([
+            center_x + np.random.uniform(-1.0, 1.0),
+            center_y + np.random.uniform(-1.0, 1.0)
+        ])
+        velocities[ent] = np.array([0.0, 0.0])
 
-    # Sort by max radius descending for packing priority
-    sorted_by_max = sorted(max_radii.items(), key=lambda kv: kv[1], reverse=True)
-    top_entities = [ent for ent, _ in sorted_by_max[:TOP_N_ENTITIES]]
+    # Pre-calculate starting step radii and run warm-up steps
+    first_vals = step_values[0]
+    sorted_ents_first = sorted(first_vals.keys(), key=lambda e: first_vals[e], reverse=True)
+    top_ents_first = set(sorted_ents_first[:TOP_N_ENTITIES])
 
-    # Pack circles ONCE using max radii — these positions are FIXED forever
-    pack_input = [(ent, max_radii[ent]) for ent in top_entities]
-    fixed_positions = _pack_circles(pack_input, center_x, center_y)
+    initial_radii = {}
+    for ent in all_entities:
+        if ent in top_ents_first:
+            val = first_vals.get(ent, 0.0)
+            initial_radii[ent] = 5.0 + np.sqrt(max(val, 0) / global_max_val) * 23.0
+        else:
+            initial_radii[ent] = 0.0
 
-    # Clamp fixed positions inside viewport (using max radius for bounds)
-    for ent in top_entities:
-        r = max_radii[ent]
-        x, y = fixed_positions.get(ent, (center_x, center_y))
-        x = np.clip(x, r + 3, 97 - r)
-        y = np.clip(y, r + 3, axes_height - r - 3)
-        fixed_positions[ent] = (x, y)
+    # Run physics engine warm-up so initial frames start nicely clustered
+    for _ in range(150):
+        _run_bubble_physics_step(positions, velocities, initial_radii, center_x, center_y, axes_height, dt=0.25)
 
-    # Animate — only radius and value change; positions stay fixed
+    # Capture state for intro frames
+    intro_positions = {ent: pos.copy() for ent, pos in positions.items()}
+    intro_radii = {ent: r for ent, r in initial_radii.items()}
+    intro_vals = {ent: first_vals.get(ent, 0.0) for ent in all_entities}
+
+    # Intro background drawing function
+    def draw_bg(fig, ax):
+        ax.set_facecolor("#000000")
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, axes_height)
+        ax.set_aspect('equal')
+        ax.set_axis_off()
+
+        sorted_ents = sorted(all_entities, key=lambda e: intro_radii[e], reverse=True)
+        for ent in sorted_ents:
+            r = intro_radii[ent]
+            if r <= 2.0:
+                continue
+            cx, cy = intro_positions[ent]
+            val = intro_vals[ent]
+            color = entity_colors.get(ent, ACCENT_COLORS[0])
+
+            # Glow
+            glow = plt.Circle(
+                (cx, cy), r + 2.5,
+                facecolor="none",
+                edgecolor=to_rgba(color, alpha=0.15),
+                linewidth=5.0, zorder=2,
+            )
+            ax.add_patch(glow)
+            # Main bubble
+            bubble = plt.Circle(
+                (cx, cy), r,
+                facecolor=to_rgba(color, alpha=0.50),
+                edgecolor=to_rgba(color, alpha=0.90),
+                linewidth=2.5, zorder=3,
+            )
+            ax.add_patch(bubble)
+            # Highlight
+            highlight = plt.Circle(
+                (cx - r * 0.15, cy + r * 0.15),
+                r * 0.4,
+                facecolor=to_rgba(color, alpha=0.12),
+                edgecolor="none", zorder=4,
+            )
+            ax.add_patch(highlight)
+
+    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0, frames_dir)
+
+    # Re-create axes for the main video
+    fig.clf()
+    fig.patch.set_facecolor("#000000")
+    ax = fig.add_axes([0.05, 0.10, 0.90, 0.70])
+
+    # Animate frame-by-frame using the physics engine
     for step_idx in range(len(time_steps) - 1):
         prev_vals = step_values[step_idx]
         next_vals = step_values[step_idx + 1]
         ts_start = pd.Timestamp(time_steps[step_idx])
         ts_end   = pd.Timestamp(time_steps[step_idx + 1])
 
+        prev_sorted = sorted(prev_vals.keys(), key=lambda e: prev_vals[e], reverse=True)
+        next_sorted = sorted(next_vals.keys(), key=lambda e: next_vals[e], reverse=True)
+
+        prev_top = set(prev_sorted[:TOP_N_ENTITIES])
+        next_top = set(next_sorted[:TOP_N_ENTITIES])
+
         for interp_frame in range(frames_per_step):
             t = _ease(interp_frame / frames_per_step)
+
+            # Interpolate value and radius for all entities
+            current_radii = {}
+            current_vals = {}
+            for ent in all_entities:
+                v0 = prev_vals.get(ent, 0.0)
+                v1 = next_vals.get(ent, 0.0)
+                val = v0 + (v1 - v0) * t
+                current_vals[ent] = val
+
+                r0 = 5.0 + np.sqrt(max(v0, 0) / global_max_val) * 23.0 if ent in prev_top else 0.0
+                r1 = 5.0 + np.sqrt(max(v1, 0) / global_max_val) * 23.0 if ent in next_top else 0.0
+                current_radii[ent] = r0 + (r1 - r0) * t
+
+            # Advance physics engine (4 sub-steps for stability and smoothness)
+            for _ in range(4):
+                _run_bubble_physics_step(positions, velocities, current_radii, center_x, center_y, axes_height, dt=0.25)
+
             ax.cla()
             ax.set_facecolor("#000000")
             ax.set_xlim(0, 100)
@@ -924,30 +996,22 @@ def _render_bubble_chart(
             interp_year = ts_start.year + (ts_end.year - ts_start.year) * t
             date_label = str(int(interp_year))
 
-            # Build bubble data — position fixed, only radius/value interpolated
+            # Draw all active bubbles
             bubbles = []
-            for ent in top_entities:
-                if ent not in fixed_positions:
-                    continue
+            for ent in all_entities:
+                r = current_radii[ent]
+                if r > 2.0:
+                    cx, cy = positions[ent]
+                    val = current_vals[ent]
+                    bubbles.append((ent, cx, cy, r, val))
 
-                v0 = prev_vals.get(ent, 0.0)
-                v1 = next_vals.get(ent, 0.0)
-                val = v0 + (v1 - v0) * t
-
-                # Compute current radius from interpolated value
-                normalized = np.sqrt(max(val, 0) / global_max_val)
-                radius = 5.0 + normalized * 23.0
-
-                cx, cy = fixed_positions[ent]
-                bubbles.append((ent, cx, cy, radius, val))
-
-            # Sort so largest drawn first (back), smallest on top
+            # Draw largest bubbles first (in the background)
             bubbles.sort(key=lambda b: b[3], reverse=True)
 
             for ent, cx, cy, radius, val in bubbles:
                 color = entity_colors.get(ent, ACCENT_COLORS[0])
 
-                # Outer glow ring
+                # Glow
                 glow = plt.Circle(
                     (cx, cy), radius + 2.5,
                     facecolor="none",
@@ -965,7 +1029,7 @@ def _render_bubble_chart(
                 )
                 ax.add_patch(bubble)
 
-                # Inner highlight for depth
+                # Inner highlight
                 highlight = plt.Circle(
                     (cx - radius * 0.15, cy + radius * 0.15),
                     radius * 0.4,
@@ -974,35 +1038,32 @@ def _render_bubble_chart(
                 )
                 ax.add_patch(highlight)
 
-                # Label logic: inside for large bubbles, outside for small ones
+                # Text Labels
                 clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
                 val_str = format_value(val, short_unit)
 
                 if radius >= 15:
-                    # Large bubble: name + value inside
+                    # Inside bubble labels
                     name_lines = textwrap.wrap(clean_name, width=max(6, int(radius * 0.7)))
                     display_text = "\n".join(name_lines) + f"\n{val_str}"
                     font_size = max(9, min(16, int(radius * 0.60)))
-
                     ax.text(
                         cx, cy, display_text,
                         ha="center", va="center", multialignment="center",
-                        color="white",
-                        fontsize=font_size, fontproperties=FONT_BOLD,
+                        color="white", fontsize=font_size, fontproperties=FONT_BOLD,
                         path_effects=OUTLINE, zorder=5,
                     )
                 elif radius >= 8:
-                    # Medium bubble: value inside, name outside
+                    # Value inside, name outside
                     ax.text(
                         cx, cy, val_str,
                         ha="center", va="center",
-                        color="white",
-                        fontsize=10, fontproperties=FONT_BOLD,
+                        color="white", fontsize=10, fontproperties=FONT_BOLD,
                         path_effects=OUTLINE, zorder=5,
                     )
-                    label_y = cy + max_radii[ent] + 6
+                    label_y = cy + radius + 6
                     if label_y > axes_height - 10:
-                        label_y = cy - max_radii[ent] - 6
+                        label_y = cy - radius - 6
                     ax.plot(
                         [cx, cx], [cy + radius, label_y - 2],
                         color=(*to_rgba(color)[:3], 0.4),
@@ -1017,10 +1078,10 @@ def _render_bubble_chart(
                         path_effects=OUTLINE, zorder=5,
                     )
                 else:
-                    # Tiny bubble: external label only
-                    label_y = cy + max_radii[ent] + 5
+                    # Small labels completely outside bubble
+                    label_y = cy + radius + 5
                     if label_y > axes_height - 10:
-                        label_y = cy - max_radii[ent] - 5
+                        label_y = cy - radius - 5
                     ax.plot(
                         [cx, cx], [cy + radius, label_y - 2],
                         color=(*to_rgba(color)[:3], 0.3),
@@ -1036,18 +1097,72 @@ def _render_bubble_chart(
                     )
 
             _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
-            _save_frame(fig, frame_number)
+            _save_frame(fig, frame_number, frames_dir)
             frame_number += 1
 
     # Hold last frame
+    final_radii = {ent: current_radii[ent] for ent in all_entities}
+    final_vals = {ent: current_vals[ent] for ent in all_entities}
     for _ in range(FPS * 1):
-        _save_frame(fig, frame_number)
+        for _ in range(4):
+            _run_bubble_physics_step(positions, velocities, final_radii, center_x, center_y, axes_height, dt=0.25)
+            
+        ax.cla()
+        ax.set_facecolor("#000000")
+        ax.set_xlim(0, 100)
+        ax.set_ylim(0, axes_height)
+        ax.set_aspect('equal')
+        ax.set_axis_off()
+
+        # Re-draw last frame with continuing micro-physics settling
+        bubbles = []
+        for ent in all_entities:
+            r = final_radii[ent]
+            if r > 2.0:
+                cx, cy = positions[ent]
+                val = final_vals[ent]
+                bubbles.append((ent, cx, cy, r, val))
+        bubbles.sort(key=lambda b: b[3], reverse=True)
+
+        for ent, cx, cy, radius, val in bubbles:
+            color = entity_colors.get(ent, ACCENT_COLORS[0])
+            glow = plt.Circle((cx, cy), radius + 2.5, facecolor="none", edgecolor=to_rgba(color, alpha=0.15), linewidth=5.0, zorder=2)
+            ax.add_patch(glow)
+            bubble = plt.Circle((cx, cy), radius, facecolor=to_rgba(color, alpha=0.50), edgecolor=to_rgba(color, alpha=0.90), linewidth=2.5, zorder=3)
+            ax.add_patch(bubble)
+            highlight = plt.Circle((cx - radius * 0.15, cy + radius * 0.15), radius * 0.4, facecolor=to_rgba(color, alpha=0.12), edgecolor="none", zorder=4)
+            ax.add_patch(highlight)
+
+            clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
+            val_str = format_value(val, short_unit)
+            if radius >= 15:
+                name_lines = textwrap.wrap(clean_name, width=max(6, int(radius * 0.7)))
+                display_text = "\n".join(name_lines) + f"\n{val_str}"
+                ax.text(cx, cy, display_text, ha="center", va="center", multialignment="center", color="white", fontsize=max(9, min(16, int(radius * 0.60))), fontproperties=FONT_BOLD, path_effects=OUTLINE, zorder=5)
+            elif radius >= 8:
+                ax.text(cx, cy, val_str, ha="center", va="center", color="white", fontsize=10, fontproperties=FONT_BOLD, path_effects=OUTLINE, zorder=5)
+                label_y = cy + radius + 6
+                if label_y > axes_height - 10:
+                    label_y = cy - radius - 6
+                ax.plot([cx, cx], [cy + radius, label_y - 2], color=(*to_rgba(color)[:3], 0.4), linewidth=1.0, zorder=4)
+                trunc_name = clean_name if len(clean_name) <= 14 else clean_name[:11] + "..."
+                ax.text(cx, label_y, trunc_name, ha="center", va="bottom", color=(*to_rgba("white")[:3], 0.85), fontsize=10, fontproperties=FONT_REGULAR, path_effects=OUTLINE, zorder=5)
+            else:
+                label_y = cy + radius + 5
+                if label_y > axes_height - 10:
+                    label_y = cy - radius - 5
+                ax.plot([cx, cx], [cy + radius, label_y - 2], color=(*to_rgba(color)[:3], 0.3), linewidth=0.8, zorder=4)
+                trunc_name = clean_name if len(clean_name) <= 10 else clean_name[:8] + ".."
+                ax.text(cx, label_y, f"{trunc_name}\n{val_str}", ha="center", va="bottom", multialignment="center", color=(*to_rgba("white")[:3], 0.7), fontsize=8, fontproperties=FONT_REGULAR, path_effects=OUTLINE, zorder=5)
+
+        _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
+        _save_frame(fig, frame_number, frames_dir)
         frame_number += 1
 
     plt.close(fig)
     print(f"[renderer_short] Total frames: {frame_number}")
-    _encode_short(FRAMES_SHORT_DIR, SHORT_FINAL)
-    return SHORT_FINAL
+    _encode_short(frames_dir, output_path)
+    return output_path
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1100,6 +1215,7 @@ def _load_world_geometry():
     try:
         import geopandas as gpd
         import ssl
+        from shapely.geometry import Polygon
         # Disable SSL verification for naturalearth download on macOS/proxies
         try:
             ssl._create_default_https_context = ssl._create_unverified_context
@@ -1119,6 +1235,90 @@ def _load_world_geometry():
 
         # Normalize names for matching
         world["name_lower"] = world["name"].str.lower().str.strip()
+
+        # ── Official J&K / Ladakh / Aksai Chin correction ──────────────
+        # Uses exact naturalearth vertex coordinates on the LoC (India-Pakistan)
+        # and LAC (India-China) shared borders to produce seamless edges.
+        # Two separate capture polygons: one for AJK+GB, one for Aksai Chin.
+
+        # AJK + Gilgit-Baltistan capture polygon:
+        # East side follows the LoC (PAK-IND shared vertices),
+        # north/west follows PAK-CHN and PAK-AFG border vertices,
+        # cutting line from LoC bottom to Durand Line excludes KP.
+        ajk_gb_capture = Polygon([
+            (74.42, 30.98),   # LoC bottom (international border junction)
+            (70.88, 33.99),   # Diagonal cut to Afghan border (excludes KP)
+            (71.16, 34.35),   # PAK-AFG border northward
+            (71.12, 34.73),
+            (71.61, 35.15),
+            (71.50, 35.65),
+            (71.26, 36.07),
+            (71.85, 36.51),
+            (72.92, 36.72),
+            (74.07, 36.84),
+            (74.58, 37.02),
+            (75.16, 37.13),   # PAK-CHN border
+            (75.90, 36.67),
+            (76.19, 35.90),
+            (77.84, 35.49),   # Triple junction (PAK-IND-CHN)
+            (76.87, 34.65),   # LoC southward (shared vertices)
+            (75.76, 34.50),
+            (74.24, 34.75),
+            (73.75, 34.32),
+            (74.10, 33.44),
+            (74.45, 32.76),
+            (75.26, 32.27),
+            (74.41, 31.69),
+            (74.42, 30.98),   # Close
+        ])
+
+        # Aksai Chin capture polygon:
+        # West side follows the LAC (CHN-IND shared vertices),
+        # east/south sweeps through India (no CHN territory there).
+        aksai_chin_capture = Polygon([
+            (77.84, 35.49),   # Triple junction
+            (74.0, 35.49),    # West into India (no CHN here)
+            (74.0, 29.0),     # South (below the region)
+            (82.0, 29.0),     # East
+            (82.0, 30.18),    # Up to LAC bottom
+            (81.11, 30.18),   # LAC northward (shared vertices)
+            (79.72, 30.88),
+            (78.74, 31.52),
+            (78.46, 32.62),
+            (79.18, 32.48),
+            (79.21, 32.99),
+            (78.81, 33.51),
+            (78.91, 34.32),
+            (77.84, 35.49),   # Close
+        ])
+
+        pak_kashmir = None
+        chn_kashmir = None
+
+        # 1. Extract and subtract AJK+GB from Pakistan
+        pak_idx = world[world["iso_a3"] == "PAK"].index
+        if not pak_idx.empty:
+            pak_geom = world.loc[pak_idx[0], "geometry"]
+            pak_kashmir = pak_geom.intersection(ajk_gb_capture)
+            world.loc[pak_idx[0], "geometry"] = pak_geom.difference(pak_kashmir)
+
+        # 2. Extract and subtract Aksai Chin from China
+        chn_idx = world[world["iso_a3"] == "CHN"].index
+        if not chn_idx.empty:
+            chn_geom = world.loc[chn_idx[0], "geometry"]
+            chn_kashmir = chn_geom.intersection(aksai_chin_capture)
+            world.loc[chn_idx[0], "geometry"] = chn_geom.difference(chn_kashmir)
+
+        # 3. Union both parts with India
+        ind_idx = world[world["iso_a3"] == "IND"].index
+        if not ind_idx.empty:
+            ind_geom = world.loc[ind_idx[0], "geometry"]
+            if pak_kashmir is not None and not pak_kashmir.is_empty:
+                ind_geom = ind_geom.union(pak_kashmir)
+            if chn_kashmir is not None and not chn_kashmir.is_empty:
+                ind_geom = ind_geom.union(chn_kashmir)
+            world.loc[ind_idx[0], "geometry"] = ind_geom
+
         return world
     except Exception as e:
         print(f"[renderer_short] Failed to load world geometry: {e}")
@@ -1147,6 +1347,8 @@ def _render_map_chart(
     topic_info: dict,
     extreme_segment: dict,
     entity_colors: dict,
+    frames_dir: Path,
+    output_path: Path,
 ) -> Path:
     """Render choropleth map animation Short.
 
@@ -1160,7 +1362,7 @@ def _render_map_chart(
     world = _load_world_geometry()
     if world is None:
         print("[renderer_short] Map animation unavailable, falling back to bar chart race.")
-        return _render_bar_chart_race(df_seg, topic_info, extreme_segment, entity_colors)
+        return _render_bar_chart_race(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
 
     start_yr = extreme_segment["start_year"]
     time_steps, step_values = _build_step_values(df_seg)
@@ -1180,7 +1382,7 @@ def _render_map_chart(
 
     if matched_count < 3:
         print("[renderer_short] Too few country matches for map. Falling back to bar chart race.")
-        return _render_bar_chart_race(df_seg, topic_info, extreme_segment, entity_colors)
+        return _render_bar_chart_race(df_seg, topic_info, extreme_segment, entity_colors, frames_dir, output_path)
 
     est_duration = (SHORT_INTRO_FRAMES + (n_steps - 1) * frames_per_step) / FPS
     print(f"[renderer_short] Map chart: {n_steps} steps, ~{est_duration:.0f}s")
@@ -1223,7 +1425,7 @@ def _render_map_chart(
         except Exception:
             pass
 
-    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0)
+    frame_number = _render_intro_frames(fig, wrapped_hook, wrapped_title, draw_bg, 0, frames_dir)
 
     fig.clf()
     fig.patch.set_facecolor("#000000")
@@ -1283,30 +1485,31 @@ def _render_map_chart(
             ax.set_ylim(-58, 85)
 
             # Label top 5 countries with values on the map
-            top5 = sorted(interp_vals.items(), key=lambda kv: kv[1], reverse=True)[:5]
-            for rank, (entity, val) in enumerate(top5):
-                if entity in country_centroids:
-                    cx, cy = country_centroids[entity]
-                    clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", entity).strip()
-                    if len(clean_name) > 12:
-                        clean_name = clean_name[:10] + ".."
-                    val_str = format_value(val, short_unit)
+            if DRAW_MAP_LABELS:
+                top5 = sorted(interp_vals.items(), key=lambda kv: kv[1], reverse=True)[:5]
+                for rank, (entity, val) in enumerate(top5):
+                    if entity in country_centroids:
+                        cx, cy = country_centroids[entity]
+                        clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", entity).strip()
+                        if len(clean_name) > 12:
+                            clean_name = clean_name[:10] + ".."
+                        val_str = format_value(val, short_unit)
 
-                    # Background pill for readability
-                    label_text = f"{clean_name}\n{val_str}"
-                    ax.text(
-                        cx, cy, label_text,
-                        ha="center", va="center", multialignment="center",
-                        color="white", fontsize=13 if rank == 0 else 10,
-                        fontproperties=FONT_BOLD,
-                        path_effects=OUTLINE, zorder=10,
-                        bbox=dict(
-                            boxstyle="round,pad=0.3",
-                            facecolor="#000000",
-                            edgecolor="none",
-                            alpha=0.55,
-                        ),
-                    )
+                        # Background pill for readability
+                        label_text = f"{clean_name}\n{val_str}"
+                        ax.text(
+                            cx, cy, label_text,
+                            ha="center", va="center", multialignment="center",
+                            color="white", fontsize=13 if rank == 0 else 10,
+                            fontproperties=FONT_BOLD,
+                            path_effects=OUTLINE, zorder=10,
+                            bbox=dict(
+                                boxstyle="round,pad=0.3",
+                                facecolor="#000000",
+                                edgecolor="none",
+                                alpha=0.55,
+                            ),
+                        )
 
             # Draw a horizontal colorbar below the map
             cbar_ax = fig.add_axes([0.15, 0.09, 0.70, 0.012])
@@ -1324,7 +1527,7 @@ def _render_map_chart(
                 cbar.set_label(unit_label, color="white", fontsize=10, labelpad=4)
 
             _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
-            _save_frame(fig, frame_number)
+            _save_frame(fig, frame_number, frames_dir)
             frame_number += 1
 
             # Remove the colorbar axes so it doesn't accumulate
@@ -1341,13 +1544,13 @@ def _render_map_chart(
     cbar.outline.set_linewidth(0.5)
 
     for _ in range(FPS * 1):
-        _save_frame(fig, frame_number)
+        _save_frame(fig, frame_number, frames_dir)
         frame_number += 1
 
     plt.close(fig)
     print(f"[renderer_short] Total frames: {frame_number}")
-    _encode_short(FRAMES_SHORT_DIR, SHORT_FINAL)
-    return SHORT_FINAL
+    _encode_short(frames_dir, output_path)
+    return output_path
 
 
 # ══════════════════════════════════════════════════════════════════════════════
