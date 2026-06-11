@@ -67,16 +67,17 @@ def select_chart_type(df_yearly: pd.DataFrame, topic_info: dict) -> str:
         chart_type = "area_chart"
     elif is_geo and n_entities > 10:
         chart_type = "map_animation"
-    elif n_entities > 5:
+    elif 6 <= n_entities <= 10:
+        import random
+        chart_type = "bubble_chart" if random.random() < 0.4 else "bar_chart_race"
+    elif n_entities > 10:
         chart_type = "bar_chart_race"
     elif 2 <= n_entities <= 5:
         chart_type = "line_chart_race"
     else:
         chart_type = "bar_chart_race"  # safe default
 
-    # Skip Gemini tiebreaker to save API calls, default to heuristic rule
-    # (especially since renderer_short only implements bar_chart_race anyway)
-    pass
+    # Gemini tiebreaker is available but skipped to save API calls
 
     print(f"[chart_selector] Selected: {chart_type}")
     return chart_type

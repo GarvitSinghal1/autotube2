@@ -14,6 +14,7 @@ load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 # ── Directories ──────────────────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 TMP_DIR = PROJECT_ROOT / "tmp"
+OUTPUT_DIR = PROJECT_ROOT / "output"
 FRAMES_LONG_DIR = TMP_DIR / "frames_long"
 FRAMES_SHORT_DIR = TMP_DIR / "frames_short"
 LONG_FORM_RAW = TMP_DIR / "long_form_raw.mp4"
@@ -23,7 +24,10 @@ LOGS_DIR = PROJECT_ROOT / "logs"
 RUN_LOG_PATH = LOGS_DIR / "run_log.json"
 ASSETS_DIR = PROJECT_ROOT / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts"
+FONT_BOLD_PATH = FONTS_DIR / "Outfit-Bold.ttf"
+FONT_REGULAR_PATH = FONTS_DIR / "Outfit-Regular.ttf"
 MUSIC_DIR = ASSETS_DIR / "music"
+CHANNEL_LOGO_PATH = ASSETS_DIR / "channel_logo.png"
 DEFAULT_VOLUME = 0.15
 
 # ── Video specs ──────────────────────────────────────────────────────────────

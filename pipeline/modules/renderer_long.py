@@ -7,6 +7,7 @@ Resolution: 1920x1080 (16:9). Approximate duration: 5–10 min at 30fps.
 """
 
 import random
+import re
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -22,6 +23,7 @@ from pipeline.config import (
     LONG_FORM_MAX_DURATION, LONG_FORM_MIN_DURATION, MUSIC_DIR,
     DEFAULT_VOLUME, TOP_N_ENTITIES, TMP_DIR,
 )
+from pipeline.modules.font_loader import FONT_BOLD, FONT_REGULAR, overlay_watermark
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
@@ -315,7 +317,7 @@ def _draw_intro_frame(
             0.5, hook_y, hook_text,
             ha="center", va="center",
             color=(1, 1, 1, hook_alpha),
-            fontsize=18, fontweight="bold",
+            fontsize=18, fontproperties=FONT_BOLD,
             wrap=True,
             transform=fig.transFigure,
             bbox=dict(
@@ -331,7 +333,7 @@ def _draw_intro_frame(
             0.02, 0.97, title,
             ha="left", va="top",
             color=(1, 1, 1, title_alpha),
-            fontsize=13, fontweight="bold",
+            fontsize=13, fontproperties=FONT_BOLD,
             transform=fig.transFigure,
         )
 
@@ -395,7 +397,6 @@ def _draw_chart_frame(
         ax.barh(y, norm_val, height=BAR_HEIGHT, color=color, alpha=0.9, left=0)
 
         # Clean/truncate entity name to prevent cutting off
-        import re
         clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", d["entity"]).strip()
         if len(clean_name) > 26:
             clean_name = clean_name[:23] + "..."
@@ -404,14 +405,14 @@ def _draw_chart_frame(
         ax.text(
             -0.01, y, clean_name,
             ha="right", va="center",
-            color="white", fontsize=10, fontweight="bold",
+            color="white", fontsize=10, fontproperties=FONT_BOLD,
         )
 
         # Value label — right end of bar
         ax.text(
             norm_val + 0.01, y, format_value(d["value"], short_unit),
             ha="left", va="center",
-            color="white", fontsize=9,
+            color="white", fontsize=9, fontproperties=FONT_REGULAR,
         )
 
     # X-axis tick labels showing real values
@@ -425,7 +426,7 @@ def _draw_chart_frame(
         ha="right", va="bottom",
         color="white",
         alpha=0.20,
-        fontsize=140, fontweight="bold",
+        fontsize=140, fontproperties=FONT_BOLD,
         transform=ax.transAxes,
         zorder=0,
     )
@@ -434,7 +435,7 @@ def _draw_chart_frame(
     ax.text(
         0.02, 0.97, title,
         ha="left", va="top",
-        color="white", fontsize=13, fontweight="bold",
+        color="white", fontsize=13, fontproperties=FONT_BOLD,
         transform=fig.transFigure,
     )
 
@@ -450,9 +451,12 @@ def _draw_chart_frame(
         ax.text(
             0.02, 0.93, source_text,
             ha="left", va="top",
-            color="#888888", fontsize=9, style="italic",
+            color="#888888", fontsize=9, fontproperties=FONT_REGULAR, style="italic",
             transform=fig.transFigure,
         )
+
+    # Watermark
+    overlay_watermark(fig, x=0.92, y=0.02, size=50, alpha=0.20)
 
     fig.savefig(
         frames_dir / f"frame_{frame_number:05d}.png",

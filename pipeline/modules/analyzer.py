@@ -59,19 +59,19 @@ def find_extreme_segment(df_yearly: pd.DataFrame, topic_info: dict) -> dict:
     max_window = min(20, len(years) - 1)
 
     for window_size in range(min_window, max_window + 1):
-        # Force the window to end at the latest available year of the dataset
-        i = len(years) - 1 - window_size
-        start_yr = years[i]
-        end_yr = years[-1]
+        # Scan all possible starting years for this window size
+        for start_idx in range(len(years) - window_size):
+            start_yr = years[start_idx]
+            end_yr = years[start_idx + window_size]
 
-        score, reason = _score_window(
-            rank_data, df_yearly, start_yr, end_yr, years
-        )
+            score, reason = _score_window(
+                rank_data, df_yearly, start_yr, end_yr, years
+            )
 
-        if score > best_score:
-            best_score = score
-            best_window = (start_yr, end_yr)
-            best_reason = reason
+            if score > best_score:
+                best_score = score
+                best_window = (start_yr, end_yr)
+                best_reason = reason
 
     start_year, end_year = best_window
 

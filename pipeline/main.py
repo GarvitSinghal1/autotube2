@@ -198,9 +198,25 @@ def _execute_steps(logger: PipelineLogger) -> None:
         logger.mark_step("metadata", "fail")
         raise RuntimeError(f"Metadata generation failed: {e}") from e
 
-    # ── Step 8.5: Save Output Locally ────────────────────────────────────
+    # ── Step 8.5: Generate Thumbnail ───────────────────────────────────────
     print("\n" + "=" * 60)
-    print("STEP 8.5: Save Output Locally")
+    print("STEP 8.5: Generate Thumbnail")
+    print("=" * 60)
+    thumb_path = None
+    try:
+        from pipeline.modules.thumbnail import generate_thumbnail
+        thumb_path = generate_thumbnail(
+            df_yearly, chart_type, topic_info, extreme_segment, entity_colors
+        )
+        state["thumbnail_path"] = thumb_path
+        logger.mark_step("thumbnail", "pass")
+    except Exception as e:
+        logger.mark_step("thumbnail", "fail")
+        print(f"[main] Warning: Thumbnail generation failed (non-fatal): {e}")
+
+    # ── Step 9: Save Output Locally ──────────────────────────────────────
+    print("\n" + "=" * 60)
+    print("STEP 9: Save Output Locally")
     print("=" * 60)
     try:
         import json
@@ -216,6 +232,12 @@ def _execute_steps(logger: PipelineLogger) -> None:
             saved_long = output_dir / "long_form.mp4"
             shutil.copy2(long_path, saved_long)
             print(f"[main] Saved long-form video to: {saved_long}")
+
+        # Copy thumbnail
+        if thumb_path and thumb_path.exists():
+            saved_thumb = output_dir / "thumbnail.png"
+            shutil.copy2(thumb_path, saved_thumb)
+            print(f"[main] Saved thumbnail to: {saved_thumb}")
         
         # Save metadata
         metadata_file = output_dir / "metadata.json"
