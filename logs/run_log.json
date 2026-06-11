@@ -2428,5 +2428,29 @@
       "uploader": "pending"
     },
     "error": "RuntimeError: Failed to acquire a valid dataset after 5 attempts."
+  },
+  {
+    "timestamp": "2026-06-11T18:48:22.558705+00:00",
+    "topic": "The World's Displaced: Which Nations See the Most People Fleeing Their Homes?",
+    "dataset_url": "https://ourworldindata.org/grapher/refugee-population-by-country-or-territory-of-origin.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1988,
+      "end_year": 1998
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/9zu0iNpt-f0",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
