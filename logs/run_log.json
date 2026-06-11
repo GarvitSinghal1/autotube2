@@ -2407,5 +2407,26 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-11T12:11:56.356143+00:00",
+    "topic": "The Planet's Fury: Which Catastrophes Left the Most People in Crisis?",
+    "dataset_url": "https://ourworldindata.org/grapher/natural-disasters-people-affected.csv",
+    "chart_type": null,
+    "extreme_segment": null,
+    "long_form_url": null,
+    "short_url": null,
+    "steps": {
+      "topic": "fail",
+      "fetcher": "fail",
+      "cleaner": "fail",
+      "analyzer": "pending",
+      "chart_selector": "pending",
+      "renderer_long": "pending",
+      "renderer_short": "pending",
+      "metadata": "pending",
+      "uploader": "pending"
+    },
+    "error": "RuntimeError: Failed to acquire a valid dataset after 5 attempts."
   }
 ]
