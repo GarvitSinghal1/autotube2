@@ -15,12 +15,16 @@ import subprocess
 import textwrap
 from pathlib import Path
 from typing import Optional
+import os
+import requests
+from PIL import Image
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.patheffects as path_effects
 from matplotlib.colors import to_rgba
 import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import numpy as np
 import pandas as pd
 
@@ -461,7 +465,9 @@ def _draw_bar_chart_frame(
             max_chars = max(8, int((norm_val - 0.18) / 0.022))
             display_name = clean_name[:max_chars - 3] + "..." if len(clean_name) > max_chars else clean_name
 
-            ax.text(left_offset + 0.04, y, display_name,
+            flag_w = _add_flag_to_axes(ax, clean_name, left_offset + 0.04, y, box_alignment=(0.0, 0.5))
+            text_x = left_offset + 0.04 + ((flag_w + 14.0) / 622.08 if flag_w > 0 else 0.0)
+            ax.text(text_x, y, display_name,
                     ha="left", va="center", color="white",
                     fontsize=18, fontproperties=FONT_BOLD,
                     path_effects=OUTLINE, clip_on=True)
@@ -471,7 +477,9 @@ def _draw_bar_chart_frame(
                     path_effects=OUTLINE, clip_on=True)
         else:
             label_text = f"{clean_name} ({val_str})"
-            ax.text(actual_end + 0.03, y, label_text,
+            flag_w = _add_flag_to_axes(ax, clean_name, actual_end + 0.03, y, box_alignment=(0.0, 0.5))
+            text_x = actual_end + 0.03 + ((flag_w + 14.0) / 622.08 if flag_w > 0 else 0.0)
+            ax.text(text_x, y, label_text,
                     ha="left", va="center", color="white",
                     fontsize=18, fontproperties=FONT_BOLD,
                     path_effects=OUTLINE, clip_on=True)
@@ -537,7 +545,7 @@ def _render_line_chart(
     # Intro: draw static first-frame lines as background
     def draw_bg(fig, ax):
         ax.set_facecolor("#000000")
-        ax.set_xlim(x_min - 0.5, x_max + 0.5)
+        ax.set_xlim(x_min - 0.5, x_max + 1.2)
         ax.set_ylim(y_min, y_max)
         for entity in all_entities:
             color = entity_colors.get(entity, ACCENT_COLORS[0])
@@ -561,8 +569,10 @@ def _render_line_chart(
             alpha = _ease(interp_frame / frames_per_step)
             ax.cla()
             ax.set_facecolor("#000000")
-            ax.set_xlim(x_min - 0.5, x_max + 0.5)
+            ax.set_xlim(x_min - 0.5, x_max + 1.2)
             ax.set_ylim(y_min, y_max)
+            ax.set_xticks(years)
+            ax.set_xticklabels([str(y) for y in years], color="white", fontsize=11)
             ax.tick_params(axis="both", colors="white", labelsize=11)
             ax.spines["top"].set_visible(False)
             ax.spines["right"].set_visible(False)
@@ -612,11 +622,21 @@ def _render_line_chart(
                 clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", entity).strip()
                 if len(clean_name) > 16:
                     clean_name = clean_name[:13] + "..."
+
+                x_flag = xv[-1] + 0.3
+                flag_w = _add_flag_to_axes(ax, clean_name, x_flag, yv[-1], box_alignment=(0.0, 0.5))
+                if flag_w > 0:
+                    x_span = (x_max + 0.5) - (x_min - 0.5)
+                    shift_years = (flag_w + 14.0) * x_span / 864.0
+                    text_x = x_flag + shift_years
+                else:
+                    text_x = x_flag
+
                 ax.text(
-                    xv[-1] + 0.3, yv[-1], clean_name,
+                    text_x, yv[-1], clean_name,
                     ha="left", va="center", color="white",
                     fontsize=14, fontproperties=FONT_BOLD,
-                    path_effects=OUTLINE, clip_on=True,
+                    path_effects=OUTLINE, clip_on=False,
                 )
 
             _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
@@ -827,6 +847,128 @@ def _run_bubble_physics_step(positions, velocities, radii, center_x, center_y, a
         positions[ent][1] = np.clip(positions[ent][1], r + 3.0, axes_height - r - 3.0)
 
 
+def _draw_bubble_scene(
+    ax: plt.Axes,
+    bubbles: list,
+    entity_colors: dict,
+    short_unit: str,
+    axes_height: float,
+    interp_frame: int,
+) -> None:
+    """Helper to draw all active bubbles, their halos, and text/flag labels."""
+    for ent, cx, cy, radius, val in bubbles:
+        color = entity_colors.get(ent, ACCENT_COLORS[0])
+
+        # 1. Glow (zorder=1)
+        glow = plt.Circle(
+            (cx, cy), radius + 2.5,
+            facecolor="none",
+            edgecolor=to_rgba(color, alpha=0.15),
+            linewidth=5.0, zorder=1,
+        )
+        ax.add_patch(glow)
+
+        # 2. Main bubble (zorder=2)
+        bubble = plt.Circle(
+            (cx, cy), radius,
+            facecolor=to_rgba(color, alpha=0.50),
+            edgecolor=to_rgba(color, alpha=0.90),
+            linewidth=2.5, zorder=2,
+        )
+        ax.add_patch(bubble)
+
+        # 3. Inner highlight (zorder=3)
+        highlight = plt.Circle(
+            (cx - radius * 0.15, cy + radius * 0.15),
+            radius * 0.4,
+            facecolor=to_rgba(color, alpha=0.12),
+            edgecolor="none", zorder=3,
+        )
+        ax.add_patch(highlight)
+
+        # 4. Text Labels (zorder=5)
+        clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
+        val_str = format_value(val, short_unit)
+
+        if radius >= 15:
+            # Inside bubble labels
+            flag_drawn = _add_flag_to_axes(ax, clean_name, cx, cy + radius * 0.35, box_alignment=(0.5, 0.5))
+            if interp_frame == 0:
+                print(f"[debug_bubble] Large Entity: {clean_name}, flag_drawn: {flag_drawn}, radius: {radius:.2f}")
+            name_lines = textwrap.wrap(clean_name, width=max(6, int(radius * 0.7)))
+            display_text = "\n".join(name_lines) + f"\n{val_str}"
+            font_size = max(9, min(16, int(radius * 0.60)))
+            text_y = cy - radius * 0.15 if flag_drawn else cy
+            ax.text(
+                cx, text_y, display_text,
+                ha="center", va="center", multialignment="center",
+                color="white", fontsize=font_size, fontproperties=FONT_BOLD,
+                path_effects=OUTLINE, zorder=5,
+            )
+        elif radius >= 8:
+            # Value inside, name outside
+            ax.text(
+                cx, cy, val_str,
+                ha="center", va="center",
+                color="white", fontsize=10, fontproperties=FONT_BOLD,
+                path_effects=OUTLINE, zorder=5,
+            )
+            is_above = True
+            label_y = cy + radius + 6
+            if label_y > axes_height - 10:
+                label_y = cy - radius - 6
+                is_above = False
+
+            ax.plot(
+                [cx, cx], [cy + radius if is_above else cy - radius, label_y - 2 if is_above else label_y + 2],
+                color=(*to_rgba(color)[:3], 0.4),
+                linewidth=1.0, zorder=4,
+            )
+            trunc_name = clean_name if len(clean_name) <= 14 else clean_name[:11] + "..."
+
+            # Compute flag position: to the left of text.
+            flag_y = label_y + 0.8 if is_above else label_y - 0.8
+            flag_w = _add_flag_to_axes(ax, clean_name, cx - 2.5, flag_y, box_alignment=(0.0, 0.5))
+            if interp_frame == 0:
+                print(f"[debug_bubble] Medium Entity: {clean_name}, flag_w: {flag_w}, radius: {radius:.2f}")
+
+            if flag_w > 0:
+                text_x = cx - 2.5 + (flag_w + 14.0) / 9.72
+                ax.text(
+                    text_x, label_y, trunc_name,
+                    ha="left", va="bottom" if is_above else "top",
+                    color=(*to_rgba("white")[:3], 0.85),
+                    fontsize=10, fontproperties=FONT_REGULAR,
+                    path_effects=OUTLINE, zorder=5,
+                )
+            else:
+                ax.text(
+                    cx, label_y, trunc_name,
+                    ha="center", va="bottom" if is_above else "top",
+                    color=(*to_rgba("white")[:3], 0.85),
+                    fontsize=10, fontproperties=FONT_REGULAR,
+                    path_effects=OUTLINE, zorder=5,
+                )
+        else:
+            # Small labels completely outside bubble
+            label_y = cy + radius + 5
+            if label_y > axes_height - 10:
+                label_y = cy - radius - 5
+            ax.plot(
+                [cx, cx], [cy + radius, label_y - 2],
+                color=(*to_rgba(color)[:3], 0.3),
+                linewidth=0.8, zorder=4,
+            )
+            trunc_name = clean_name if len(clean_name) <= 10 else clean_name[:8] + ".."
+            ax.text(
+                cx, label_y, f"{trunc_name}\n{val_str}",
+                ha="center", va="bottom", multialignment="center",
+                color=(*to_rgba("white")[:3], 0.7),
+                fontsize=8, fontproperties=FONT_REGULAR,
+                path_effects=OUTLINE, zorder=5,
+            )
+
+
 def _render_bubble_chart(
     df_seg: pd.DataFrame,
     topic_info: dict,
@@ -910,7 +1052,10 @@ def _render_bubble_chart(
         ax.set_xlim(0, 100)
         ax.set_ylim(0, axes_height)
         ax.set_aspect('equal')
-        ax.set_axis_off()
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
         sorted_ents = sorted(all_entities, key=lambda e: intro_radii[e], reverse=True)
         for ent in sorted_ents:
@@ -926,7 +1071,7 @@ def _render_bubble_chart(
                 (cx, cy), r + 2.5,
                 facecolor="none",
                 edgecolor=to_rgba(color, alpha=0.15),
-                linewidth=5.0, zorder=2,
+                linewidth=5.0, zorder=1,
             )
             ax.add_patch(glow)
             # Main bubble
@@ -934,7 +1079,7 @@ def _render_bubble_chart(
                 (cx, cy), r,
                 facecolor=to_rgba(color, alpha=0.50),
                 edgecolor=to_rgba(color, alpha=0.90),
-                linewidth=2.5, zorder=3,
+                linewidth=2.5, zorder=2,
             )
             ax.add_patch(bubble)
             # Highlight
@@ -942,7 +1087,7 @@ def _render_bubble_chart(
                 (cx - r * 0.15, cy + r * 0.15),
                 r * 0.4,
                 facecolor=to_rgba(color, alpha=0.12),
-                edgecolor="none", zorder=4,
+                edgecolor="none", zorder=3,
             )
             ax.add_patch(highlight)
 
@@ -991,7 +1136,10 @@ def _render_bubble_chart(
             ax.set_xlim(0, 100)
             ax.set_ylim(0, axes_height)
             ax.set_aspect('equal')
-            ax.set_axis_off()
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
 
             interp_year = ts_start.year + (ts_end.year - ts_start.year) * t
             date_label = str(int(interp_year))
@@ -1008,93 +1156,7 @@ def _render_bubble_chart(
             # Draw largest bubbles first (in the background)
             bubbles.sort(key=lambda b: b[3], reverse=True)
 
-            for ent, cx, cy, radius, val in bubbles:
-                color = entity_colors.get(ent, ACCENT_COLORS[0])
-
-                # Glow
-                glow = plt.Circle(
-                    (cx, cy), radius + 2.5,
-                    facecolor="none",
-                    edgecolor=to_rgba(color, alpha=0.15),
-                    linewidth=5.0, zorder=2,
-                )
-                ax.add_patch(glow)
-
-                # Main bubble
-                bubble = plt.Circle(
-                    (cx, cy), radius,
-                    facecolor=to_rgba(color, alpha=0.50),
-                    edgecolor=to_rgba(color, alpha=0.90),
-                    linewidth=2.5, zorder=3,
-                )
-                ax.add_patch(bubble)
-
-                # Inner highlight
-                highlight = plt.Circle(
-                    (cx - radius * 0.15, cy + radius * 0.15),
-                    radius * 0.4,
-                    facecolor=to_rgba(color, alpha=0.12),
-                    edgecolor="none", zorder=4,
-                )
-                ax.add_patch(highlight)
-
-                # Text Labels
-                clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
-                val_str = format_value(val, short_unit)
-
-                if radius >= 15:
-                    # Inside bubble labels
-                    name_lines = textwrap.wrap(clean_name, width=max(6, int(radius * 0.7)))
-                    display_text = "\n".join(name_lines) + f"\n{val_str}"
-                    font_size = max(9, min(16, int(radius * 0.60)))
-                    ax.text(
-                        cx, cy, display_text,
-                        ha="center", va="center", multialignment="center",
-                        color="white", fontsize=font_size, fontproperties=FONT_BOLD,
-                        path_effects=OUTLINE, zorder=5,
-                    )
-                elif radius >= 8:
-                    # Value inside, name outside
-                    ax.text(
-                        cx, cy, val_str,
-                        ha="center", va="center",
-                        color="white", fontsize=10, fontproperties=FONT_BOLD,
-                        path_effects=OUTLINE, zorder=5,
-                    )
-                    label_y = cy + radius + 6
-                    if label_y > axes_height - 10:
-                        label_y = cy - radius - 6
-                    ax.plot(
-                        [cx, cx], [cy + radius, label_y - 2],
-                        color=(*to_rgba(color)[:3], 0.4),
-                        linewidth=1.0, zorder=4,
-                    )
-                    trunc_name = clean_name if len(clean_name) <= 14 else clean_name[:11] + "..."
-                    ax.text(
-                        cx, label_y, trunc_name,
-                        ha="center", va="bottom",
-                        color=(*to_rgba("white")[:3], 0.85),
-                        fontsize=10, fontproperties=FONT_REGULAR,
-                        path_effects=OUTLINE, zorder=5,
-                    )
-                else:
-                    # Small labels completely outside bubble
-                    label_y = cy + radius + 5
-                    if label_y > axes_height - 10:
-                        label_y = cy - radius - 5
-                    ax.plot(
-                        [cx, cx], [cy + radius, label_y - 2],
-                        color=(*to_rgba(color)[:3], 0.3),
-                        linewidth=0.8, zorder=4,
-                    )
-                    trunc_name = clean_name if len(clean_name) <= 10 else clean_name[:8] + ".."
-                    ax.text(
-                        cx, label_y, f"{trunc_name}\n{val_str}",
-                        ha="center", va="bottom", multialignment="center",
-                        color=(*to_rgba("white")[:3], 0.7),
-                        fontsize=8, fontproperties=FONT_REGULAR,
-                        path_effects=OUTLINE, zorder=5,
-                    )
+            _draw_bubble_scene(ax, bubbles, entity_colors, short_unit, axes_height, interp_frame)
 
             _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
             _save_frame(fig, frame_number, frames_dir)
@@ -1112,7 +1174,10 @@ def _render_bubble_chart(
         ax.set_xlim(0, 100)
         ax.set_ylim(0, axes_height)
         ax.set_aspect('equal')
-        ax.set_axis_off()
+        ax.set_xticks([])
+        ax.set_yticks([])
+        for spine in ax.spines.values():
+            spine.set_visible(False)
 
         # Re-draw last frame with continuing micro-physics settling
         bubbles = []
@@ -1124,36 +1189,7 @@ def _render_bubble_chart(
                 bubbles.append((ent, cx, cy, r, val))
         bubbles.sort(key=lambda b: b[3], reverse=True)
 
-        for ent, cx, cy, radius, val in bubbles:
-            color = entity_colors.get(ent, ACCENT_COLORS[0])
-            glow = plt.Circle((cx, cy), radius + 2.5, facecolor="none", edgecolor=to_rgba(color, alpha=0.15), linewidth=5.0, zorder=2)
-            ax.add_patch(glow)
-            bubble = plt.Circle((cx, cy), radius, facecolor=to_rgba(color, alpha=0.50), edgecolor=to_rgba(color, alpha=0.90), linewidth=2.5, zorder=3)
-            ax.add_patch(bubble)
-            highlight = plt.Circle((cx - radius * 0.15, cy + radius * 0.15), radius * 0.4, facecolor=to_rgba(color, alpha=0.12), edgecolor="none", zorder=4)
-            ax.add_patch(highlight)
-
-            clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
-            val_str = format_value(val, short_unit)
-            if radius >= 15:
-                name_lines = textwrap.wrap(clean_name, width=max(6, int(radius * 0.7)))
-                display_text = "\n".join(name_lines) + f"\n{val_str}"
-                ax.text(cx, cy, display_text, ha="center", va="center", multialignment="center", color="white", fontsize=max(9, min(16, int(radius * 0.60))), fontproperties=FONT_BOLD, path_effects=OUTLINE, zorder=5)
-            elif radius >= 8:
-                ax.text(cx, cy, val_str, ha="center", va="center", color="white", fontsize=10, fontproperties=FONT_BOLD, path_effects=OUTLINE, zorder=5)
-                label_y = cy + radius + 6
-                if label_y > axes_height - 10:
-                    label_y = cy - radius - 6
-                ax.plot([cx, cx], [cy + radius, label_y - 2], color=(*to_rgba(color)[:3], 0.4), linewidth=1.0, zorder=4)
-                trunc_name = clean_name if len(clean_name) <= 14 else clean_name[:11] + "..."
-                ax.text(cx, label_y, trunc_name, ha="center", va="bottom", color=(*to_rgba("white")[:3], 0.85), fontsize=10, fontproperties=FONT_REGULAR, path_effects=OUTLINE, zorder=5)
-            else:
-                label_y = cy + radius + 5
-                if label_y > axes_height - 10:
-                    label_y = cy - radius - 5
-                ax.plot([cx, cx], [cy + radius, label_y - 2], color=(*to_rgba(color)[:3], 0.3), linewidth=0.8, zorder=4)
-                trunc_name = clean_name if len(clean_name) <= 10 else clean_name[:8] + ".."
-                ax.text(cx, label_y, f"{trunc_name}\n{val_str}", ha="center", va="bottom", multialignment="center", color=(*to_rgba("white")[:3], 0.7), fontsize=8, fontproperties=FONT_REGULAR, path_effects=OUTLINE, zorder=5)
+        _draw_bubble_scene(ax, bubbles, entity_colors, short_unit, axes_height, interp_frame=1)
 
         _draw_frame_chrome(ax, fig, wrapped_title, source, date_label, topic_info)
         _save_frame(fig, frame_number, frames_dir)
@@ -1208,6 +1244,137 @@ _COUNTRY_TO_ISO = {
     "belarus": "BLR", "moldova": "MDA", "georgia": "GEO",
     "armenia": "ARM", "azerbaijan": "AZE",
 }
+
+
+_COUNTRY_TO_ISO2 = {
+    "united states": "us", "china": "cn", "india": "in", "germany": "de",
+    "japan": "jp", "brazil": "br", "france": "fr", "united kingdom": "gb",
+    "russia": "ru", "canada": "ca", "australia": "au", "south korea": "kr",
+    "mexico": "mx", "indonesia": "id", "italy": "it", "spain": "es",
+    "turkey": "tr", "saudi arabia": "sa", "argentina": "ar", "poland": "pl",
+    "netherlands": "nl", "switzerland": "ch", "sweden": "se", "norway": "no",
+    "belgium": "be", "austria": "at", "iran": "ir", "thailand": "th",
+    "south africa": "za", "egypt": "eg", "nigeria": "ng", "pakistan": "pk",
+    "bangladesh": "bd", "vietnam": "vn", "philippines": "ph", "colombia": "co",
+    "chile": "cl", "peru": "pe", "czech republic": "cz", "romania": "ro",
+    "portugal": "pt", "greece": "gr", "hungary": "hu", "israel": "il",
+    "ireland": "ie", "denmark": "dk", "finland": "fi", "new zealand": "nz",
+    "singapore": "sg", "malaysia": "my", "ukraine": "ua", "morocco": "ma",
+    "kenya": "ke", "ethiopia": "et", "tanzania": "tz", "ghana": "gh",
+    "dr congo": "cd", "algeria": "dz", "iraq": "iq", "venezuela": "ve",
+    "cuba": "cu", "north korea": "kp", "myanmar": "mm", "sri lanka": "lk",
+    "nepal": "np", "cambodia": "kh", "laos": "la", "syria": "sy",
+    "jordan": "jo", "lebanon": "lb", "kuwait": "kw", "qatar": "qa",
+    "bahrain": "bh", "oman": "om", "yemen": "ye", "afghanistan": "af",
+    "uzbekistan": "uz", "kazakhstan": "kz", "mongolia": "mn",
+    "papua new guinea": "pg", "zimbabwe": "zw", "mozambique": "mz",
+    "angola": "ao", "cameroon": "cm", "ivory coast": "ci", "senegal": "sn",
+    "mali": "ml", "burkina faso": "bf", "niger": "ne", "chad": "td",
+    "uganda": "ug", "rwanda": "rw", "madagascar": "mg", "sudan": "sd",
+    "tunisia": "tn", "libya": "ly", "somalia": "so",
+    "dominican republic": "do", "haiti": "ht", "jamaica": "jm",
+    "trinidad and tobago": "tt", "panama": "pa", "costa rica": "cr",
+    "uruguay": "uy", "paraguay": "py", "bolivia": "bo", "ecuador": "ec",
+    "el salvador": "sv", "honduras": "hn", "guatemala": "gt",
+    "nicaragua": "ni", "iceland": "is", "luxembourg": "lu",
+    "estonia": "ee", "latvia": "lv", "lithuania": "lt",
+    "croatia": "hr", "slovenia": "si", "slovakia": "sk",
+    "serbia": "rs", "bosnia and herzegovina": "ba", "albania": "al",
+    "north macedonia": "mk", "montenegro": "me", "bulgaria": "bg",
+    "belarus": "by", "moldova": "md", "georgia": "ge",
+    "armenia": "am", "azerbaijan": "az",
+    "eswatini": "sz", "timor-leste": "tl", "cote d'ivoire": "ci",
+}
+
+
+_ISO3_TO_ISO2 = {
+    "USA": "us", "CHN": "cn", "IND": "in", "DEU": "de", "JPN": "jp", "BRA": "br", "FRA": "fr", "GBR": "gb",
+    "RUS": "ru", "CAN": "ca", "AUS": "au", "KOR": "kr", "MEX": "mx", "IDN": "id", "ITA": "it", "ESP": "es",
+    "TUR": "tr", "SAU": "sa", "ARG": "ar", "POL": "pl", "NLD": "nl", "CHE": "ch", "SWE": "se", "NOR": "no",
+    "BEL": "be", "AUT": "at", "IRN": "ir", "THA": "th", "ZAF": "za", "EGY": "eg", "NGA": "ng", "PAK": "pk",
+    "BGD": "bd", "VNM": "vn", "PHL": "ph", "COL": "co", "CHL": "cl", "PER": "pe", "CZE": "cz", "ROU": "ro",
+    "PRT": "pt", "GRC": "gr", "HUN": "hu", "ISR": "il", "IRL": "ie", "DNK": "dk", "FIN": "fi", "NZL": "nz",
+    "SGP": "sg", "MYS": "my", "UKR": "ua", "MAR": "ma", "KEN": "ke", "ETH": "et", "TZA": "tz", "GHA": "gh",
+    "COD": "cd", "DZA": "dz", "IRQ": "iq", "VEN": "ve", "CUB": "cu", "PRK": "kp", "MMR": "mm", "LKA": "lk",
+    "NPL": "np", "KHM": "kh", "LAO": "la", "SYR": "sy", "JOR": "jo", "LBN": "lb", "KWT": "kw", "QAT": "qa",
+    "BHR": "bh", "OMN": "om", "YEM": "ye", "AFG": "af", "UZB": "uz", "KAZ": "kz", "MNG": "mn", "PNG": "pg",
+    "ZWE": "zw", "MOZ": "mz", "AGO": "ao", "CMR": "cm", "CIV": "ci", "SEN": "sn", "MLI": "ml", "BFA": "bf",
+    "NER": "ne", "TCD": "td", "UGA": "ug", "RWA": "rw", "MDG": "mg", "SDN": "sd", "TUN": "tn", "LBY": "ly",
+    "SOM": "so", "DOM": "do", "HTI": "ht", "JAM": "jm", "TTO": "tt", "PAN": "pa", "CRI": "cr", "URY": "uy",
+    "PRY": "py", "BOL": "bo", "ECU": "ec", "SLV": "sv", "HND": "hn", "GTM": "gt", "NIC": "ni", "ISL": "is",
+    "LUX": "lu", "EST": "ee", "LVA": "lv", "LTU": "lt", "HRV": "hr", "SVN": "si", "SVK": "sk", "SRB": "rs",
+    "BIH": "ba", "ALB": "al", "MKD": "mk", "MNE": "me", "BGR": "bg", "BLR": "by", "MDA": "md", "GEO": "ge",
+    "ARM": "am", "AZE": "az", "SWZ": "sz", "TLS": "tl",
+}
+
+
+def _get_flag_path(entity: str) -> Optional[str]:
+    """Get path to the cached flag PNG for an entity, downloading if necessary."""
+    name_lower = entity.lower().strip()
+    
+    # 1. Resolve to ISO-2 lowercase code
+    iso2 = None
+    if name_lower in _COUNTRY_TO_ISO2:
+        iso2 = _COUNTRY_TO_ISO2[name_lower]
+    else:
+        # Fallback to world geometry / ISO-3 mapping
+        if name_lower in _COUNTRY_TO_ISO:
+            iso3 = _COUNTRY_TO_ISO[name_lower]
+            iso2 = _ISO3_TO_ISO2.get(iso3, None)
+
+    if not iso2:
+        return None
+
+    # 2. Local cache directory setup
+    flags_dir = Path("assets/flags")
+    flags_dir.mkdir(parents=True, exist_ok=True)
+    flag_path = flags_dir / f"{iso2}.png"
+
+    # 3. Download if not exists
+    if not flag_path.exists():
+        url = f"https://flagcdn.com/w80/{iso2}.png"
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200:
+                flag_path.write_bytes(r.content)
+            else:
+                return None
+        except Exception as e:
+            print(f"[renderer_short] Failed to download flag for {entity} from {url}: {e}")
+            return None
+
+    return str(flag_path)
+
+
+def _add_flag_to_axes(ax: plt.Axes, entity: str, x: float, y: float, box_alignment=(0.0, 0.5)) -> int:
+    """Fetch/load flag for entity and add to axes at (x, y) with AnnotationBbox.
+    Returns the width of the resized flag image in points (pixels), or 0 if failed.
+    """
+    flag_path = _get_flag_path(entity)
+    if not flag_path:
+        return 0
+    try:
+        flag_img = Image.open(flag_path).convert("RGBA")
+        # Resize to standard height of 16px, keeping aspect ratio
+        w, h = flag_img.size
+        new_h = 16
+        new_w = int(w * (new_h / h))
+        flag_img = flag_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+        
+        im = OffsetImage(flag_img, zoom=1.0)
+        ab = AnnotationBbox(
+            im, (x, y),
+            xycoords='data',
+            frameon=False,
+            box_alignment=box_alignment,
+            pad=0.0,
+        )
+        ab.set_zorder(5)
+        ax.add_artist(ab)
+        return new_w
+    except Exception as e:
+        print(f"[renderer_short] Failed to draw flag for {entity}: {e}")
+        return 0
 
 
 def _load_world_geometry():
