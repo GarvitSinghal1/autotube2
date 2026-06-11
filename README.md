@@ -60,8 +60,8 @@ python -m pipeline.modules.index_datasets
 ## GitHub Actions
 
 The pipeline runs automatically via `.github/workflows/daily_run.yml`:
-- **Schedule**: 4× daily — every 6 hours (00:00, 06:00, 12:00, 18:00 UTC)
-- **IST times**: 5:30 AM, 11:30 AM, 5:30 PM, 11:30 PM
+- **Schedule**: 3× daily — every 8 hours (00:00, 08:00, 16:00 UTC)
+- **IST times**: 5:30 AM, 1:30 PM, 9:30 PM
 - **Manual trigger**: Available via `workflow_dispatch`
 
 ### Required Secrets
