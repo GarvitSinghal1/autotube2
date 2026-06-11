@@ -2383,5 +2383,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-11T04:07:25.225482+00:00",
+    "topic": "The Global Lockup Battle: Which Nations Are Building the Most Cells?",
+    "dataset_url": "https://ourworldindata.org/grapher/prison-capacity.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2016,
+      "end_year": 2026
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/5CqumYp5hRk",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
