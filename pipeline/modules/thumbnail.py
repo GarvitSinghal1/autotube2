@@ -181,8 +181,6 @@ def _draw_bubbles_clean(
     from pipeline.modules.renderer_short import _pack_circles
 
     year_data = df_seg[df_seg["date"].dt.year == end_year]
-
-    # Calculate radii based on values
     all_vals = df_seg["value"].values
     global_max_val = max(all_vals) if len(all_vals) > 0 else 1.0
 
@@ -191,28 +189,40 @@ def _draw_bubbles_clean(
     top_entities = sorted_entities[:TOP_N_ENTITIES]
 
     # Packing max radii setup
-    max_radii = {}
+    R_test_max = 20.0
+    pack_input = []
     for ent in top_entities:
         val = entities_max.get(ent, 0.0)
-        norm = np.sqrt(max(val, 0) / global_max_val)
-        max_radii[ent] = 5.0 + norm * 23.0
+        r_test = R_test_max * np.sqrt(max(val, 0) / global_max_val)
+        pack_input.append((ent, r_test))
+    pack_input.sort(key=lambda x: x[1], reverse=True)
 
     axes_aspect = 19.2 / 10.8
     axes_height = 100.0 * axes_aspect
 
-    center_x = 50.0
-    center_y = axes_height / 2.0
+    packed_positions = _pack_circles(pack_input, 0.0, 0.0)
 
-    pack_input = [(ent, max_radii[ent]) for ent in top_entities]
-    positions = _pack_circles(pack_input, center_x, center_y)
+    # Calculate bounding box
+    X_min = min(packed_positions[ent][0] - r_test for ent, r_test in pack_input)
+    X_max = max(packed_positions[ent][0] + r_test for ent, r_test in pack_input)
+    Y_min = min(packed_positions[ent][1] - r_test for ent, r_test in pack_input)
+    Y_max = max(packed_positions[ent][1] + r_test for ent, r_test in pack_input)
 
-    # Clamp bounds
-    for ent in top_entities:
-        r = max_radii[ent]
-        x, y = positions.get(ent, (center_x, center_y))
-        x = np.clip(x, r + 3, 97 - r)
-        y = np.clip(y, r + 3, axes_height - r - 3)
-        positions[ent] = (x, y)
+    W_packed = X_max - X_min
+    H_packed = Y_max - Y_min
+
+    margin_x = 6.0
+    margin_y = 12.0
+    W_target = 100.0 - 2 * margin_x
+    H_target = axes_height - 2 * margin_y
+    S = min(W_target / W_packed, H_target / H_packed)
+
+    X_center_packed = (X_min + X_max) / 2.0
+    Y_center_packed = (Y_min + Y_max) / 2.0
+    X_center_screen = 50.0
+    Y_center_screen = axes_height / 2.0
+
+    scale_factor = S * R_test_max
 
     ax.set_xlim(0, 100)
     ax.set_ylim(0, axes_height)
@@ -220,15 +230,18 @@ def _draw_bubbles_clean(
     ax.set_axis_off()
 
     for ent in top_entities:
-        if ent not in positions:
+        if ent not in packed_positions:
             continue
         val_arr = year_data[year_data["entity"] == ent]["value"].values
         val = val_arr[0] if len(val_arr) > 0 else 0.0
+        radius = scale_factor * np.sqrt(max(val, 0) / global_max_val)
+        if radius <= 0.01:
+            continue
 
-        norm = np.sqrt(max(val, 0) / global_max_val)
-        radius = 5.0 + norm * 23.0
+        px, py = packed_positions[ent]
+        cx = X_center_screen + S * (px - X_center_packed)
+        cy = Y_center_screen + S * (py - Y_center_packed)
 
-        cx, cy = positions[ent]
         color = entity_colors.get(ent, ACCENT_COLORS[0])
 
         glow = plt.Circle(
@@ -250,15 +263,16 @@ def _draw_bubbles_clean(
         clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
         val_str = format_value(val, short_unit)
 
-        if radius >= 12:
-            display_text = f"{clean_name}\n{val_str}"
+        if radius >= 7.5:
+            name_lines = textwrap.wrap(clean_name, width=max(10, int(radius * 0.9)))
+            display_text = "\n".join(name_lines) + f"\n{val_str}"
             fontsize = max(8, min(14, int(radius * 0.55)))
             ax.text(
                 cx, cy, display_text, ha="center", va="center", color="white",
                 fontsize=fontsize, fontproperties=FONT_BOLD,
                 path_effects=[path_effects.Stroke(linewidth=2.5, foreground="black"), path_effects.Normal()]
             )
-        elif radius >= 6:
+        elif radius >= 4.0:
             ax.text(
                 cx, cy, val_str, ha="center", va="center", color="white",
                 fontsize=8, fontproperties=FONT_BOLD,

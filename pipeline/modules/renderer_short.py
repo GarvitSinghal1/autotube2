@@ -276,14 +276,30 @@ def _draw_frame_chrome(
 
 
 def _save_frame(fig: plt.Figure, frame_number: int, frames_dir: Optional[Path] = None) -> None:
-    """Save a figure as a PNG frame."""
+    """Save a figure as a PNG frame with retry logic for cloud-synced folders."""
     if frames_dir is None:
         frames_dir = FRAMES_SHORT_DIR
-    fig.savefig(
-        frames_dir / f"frame_{frame_number:05d}.png",
-        dpi=100, facecolor="#000000", pad_inches=0,
-        pil_kwargs={"compress_level": 1},
-    )
+    
+    import time
+    file_path = frames_dir / f"frame_{frame_number:05d}.png"
+    
+    for attempt in range(5):
+        try:
+            frames_dir.mkdir(parents=True, exist_ok=True)
+            fig.savefig(
+                file_path,
+                dpi=100, facecolor="#000000", pad_inches=0,
+                pil_kwargs={"compress_level": 1},
+            )
+            return
+        except FileNotFoundError as e:
+            if attempt == 4:
+                raise e
+            time.sleep(0.1)
+        except Exception as e:
+            if attempt == 4:
+                raise e
+            time.sleep(0.1)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -787,47 +803,42 @@ def _run_bubble_physics_step(positions, velocities, radii, center_x, center_y, a
     forces = {ent: np.array([0.0, 0.0]) for ent in positions}
     
     # 1. Gravity attraction to center of screen
-    gravity = 0.06
+    gravity = 0.03
     for ent in positions:
         if radii[ent] <= 0.01:
             continue
         forces[ent] += (np.array([center_x, center_y]) - positions[ent]) * gravity
         
-    # 2. Pairwise bubble-bubble repulsion force to prevent overlap
-    ent_list = list(positions.keys())
-    for i in range(len(ent_list)):
-        entA = ent_list[i]
+    # Pre-filter active entities to optimize N^2 collision check
+    active_ents = [ent for ent in positions if radii[ent] > 0.01]
+        
+    # 2. Pairwise bubble-bubble repulsion force to prevent overlap (soft force)
+    for i in range(len(active_ents)):
+        entA = active_ents[i]
         rA = radii[entA]
-        if rA <= 0.01:
-            continue
-        for j in range(i + 1, len(ent_list)):
-            entB = ent_list[j]
+        for j in range(i + 1, len(active_ents)):
+            entB = active_ents[j]
             rB = radii[entB]
-            if rB <= 0.01:
-                continue
                 
             delta = positions[entA] - positions[entB]
             dist = np.hypot(delta[0], delta[1])
-            # Allow organic overlap up to 5% of combined radii
-            target_dist = (rA + rB) * 0.95
+            target_dist = (rA + rB) * 1.05
             
             if dist < target_dist:
                 if dist < 0.001:
-                    # Resolve identical coordinates
                     angle = np.random.uniform(0, 2 * np.pi)
                     delta = np.array([np.cos(angle), np.sin(angle)]) * 0.01
                     dist = 0.01
                 
                 overlap = target_dist - dist
                 dir_vector = delta / dist
-                # Force is proportional to overlap amount
-                f = dir_vector * overlap * 0.35
+                f = dir_vector * overlap * 1.5
                 
                 forces[entA] += f
                 forces[entB] -= f
                 
     # 3. Update velocity and position with friction/damping
-    damping = 0.55
+    damping = 0.6
     for ent in positions:
         if radii[ent] <= 0.01:
             # Keep inactive/invisible bubbles centered with small noise to prevent drift
@@ -841,10 +852,45 @@ def _run_bubble_physics_step(positions, velocities, radii, center_x, center_y, a
         velocities[ent] = (velocities[ent] + forces[ent] * dt) * damping
         positions[ent] = positions[ent] + velocities[ent] * dt
         
-        # Keep bubbles fully inside viewable screen boundaries
-        r = radii[ent]
-        positions[ent][0] = np.clip(positions[ent][0], r + 3.0, 97.0 - r)
-        positions[ent][1] = np.clip(positions[ent][1], r + 3.0, axes_height - r - 3.0)
+    # 4. Hard geometric overlap resolution (multiple iterations for stability)
+    for _ in range(8):
+        # Resolve bubble-bubble overlaps
+        for i in range(len(active_ents)):
+            entA = active_ents[i]
+            rA = radii[entA]
+            for j in range(i + 1, len(active_ents)):
+                entB = active_ents[j]
+                rB = radii[entB]
+                
+                delta = positions[entA] - positions[entB]
+                dist = np.hypot(delta[0], delta[1])
+                target_dist = (rA + rB) * 1.02  # keep 2% safety gap
+                if dist < target_dist:
+                    overlap = target_dist - dist
+                    if dist > 0.001:
+                        dir_vector = delta / dist
+                    else:
+                        angle = np.random.uniform(0, 2 * np.pi)
+                        dir_vector = np.array([np.cos(angle), np.sin(angle)])
+                    
+                    # Push apart geometrically (50% each)
+                    positions[entA] += dir_vector * (overlap * 0.5)
+                    positions[entB] -= dir_vector * (overlap * 0.5)
+                    
+                    # Prevent them from moving deeper into each other by projecting velocities
+                    v_rel = velocities[entA] - velocities[entB]
+                    vn = np.dot(v_rel, dir_vector)
+                    if vn < 0:
+                        # Cancel relative normal velocity
+                        impulse = vn * 0.5
+                        velocities[entA] -= impulse * dir_vector
+                        velocities[entB] += impulse * dir_vector
+                        
+        # Enforce boundary constraints
+        for ent in active_ents:
+            r = radii[ent]
+            positions[ent][0] = np.clip(positions[ent][0], r + 3.0, 97.0 - r)
+            positions[ent][1] = np.clip(positions[ent][1], r + 3.0, axes_height - r - 3.0)
 
 
 def _draw_bubble_scene(
@@ -890,14 +936,14 @@ def _draw_bubble_scene(
         clean_name = re.sub(r"\s*\([^)]*\)\s*$", "", ent).strip()
         val_str = format_value(val, short_unit)
 
-        if radius >= 15:
+        if radius >= 7.5:
             # Inside bubble labels
-            flag_drawn = _add_flag_to_axes(ax, clean_name, cx, cy + radius * 0.35, box_alignment=(0.5, 0.5))
+            flag_drawn = _add_flag_to_axes(ax, clean_name, cx, cy + radius * 0.35, box_alignment=(0.5, 0.5), size=20)
             if interp_frame == 0:
                 print(f"[debug_bubble] Large Entity: {clean_name}, flag_drawn: {flag_drawn}, radius: {radius:.2f}")
-            name_lines = textwrap.wrap(clean_name, width=max(6, int(radius * 0.7)))
+            name_lines = textwrap.wrap(clean_name, width=max(8, int(radius * 0.75)))
             display_text = "\n".join(name_lines) + f"\n{val_str}"
-            font_size = max(9, min(16, int(radius * 0.60)))
+            font_size = max(11, min(22, int(radius * 0.80)))
             text_y = cy - radius * 0.15 if flag_drawn else cy
             ax.text(
                 cx, text_y, display_text,
@@ -905,18 +951,18 @@ def _draw_bubble_scene(
                 color="white", fontsize=font_size, fontproperties=FONT_BOLD,
                 path_effects=OUTLINE, zorder=5,
             )
-        elif radius >= 8:
+        elif radius >= 4.0:
             # Value inside, name outside
             ax.text(
                 cx, cy, val_str,
                 ha="center", va="center",
-                color="white", fontsize=10, fontproperties=FONT_BOLD,
+                color="white", fontsize=12, fontproperties=FONT_BOLD,
                 path_effects=OUTLINE, zorder=5,
             )
             is_above = True
-            label_y = cy + radius + 6
+            label_y = cy + radius + 7
             if label_y > axes_height - 10:
-                label_y = cy - radius - 6
+                label_y = cy - radius - 7
                 is_above = False
 
             ax.plot(
@@ -928,7 +974,7 @@ def _draw_bubble_scene(
 
             # Compute flag position: to the left of text.
             flag_y = label_y + 0.8 if is_above else label_y - 0.8
-            flag_w = _add_flag_to_axes(ax, clean_name, cx - 2.5, flag_y, box_alignment=(0.0, 0.5))
+            flag_w = _add_flag_to_axes(ax, clean_name, cx - 2.5, flag_y, box_alignment=(0.0, 0.5), size=18)
             if interp_frame == 0:
                 print(f"[debug_bubble] Medium Entity: {clean_name}, flag_w: {flag_w}, radius: {radius:.2f}")
 
@@ -938,7 +984,7 @@ def _draw_bubble_scene(
                     text_x, label_y, trunc_name,
                     ha="left", va="bottom" if is_above else "top",
                     color=(*to_rgba("white")[:3], 0.85),
-                    fontsize=10, fontproperties=FONT_REGULAR,
+                    fontsize=12, fontproperties=FONT_REGULAR,
                     path_effects=OUTLINE, zorder=5,
                 )
             else:
@@ -946,14 +992,14 @@ def _draw_bubble_scene(
                     cx, label_y, trunc_name,
                     ha="center", va="bottom" if is_above else "top",
                     color=(*to_rgba("white")[:3], 0.85),
-                    fontsize=10, fontproperties=FONT_REGULAR,
+                    fontsize=12, fontproperties=FONT_REGULAR,
                     path_effects=OUTLINE, zorder=5,
                 )
         else:
             # Small labels completely outside bubble
-            label_y = cy + radius + 5
+            label_y = cy + radius + 6
             if label_y > axes_height - 10:
-                label_y = cy - radius - 5
+                label_y = cy - radius - 6
             ax.plot(
                 [cx, cx], [cy + radius, label_y - 2],
                 color=(*to_rgba(color)[:3], 0.3),
@@ -964,7 +1010,7 @@ def _draw_bubble_scene(
                 cx, label_y, f"{trunc_name}\n{val_str}",
                 ha="center", va="bottom", multialignment="center",
                 color=(*to_rgba("white")[:3], 0.7),
-                fontsize=8, fontproperties=FONT_REGULAR,
+                fontsize=10, fontproperties=FONT_REGULAR,
                 path_effects=OUTLINE, zorder=5,
             )
 
@@ -1013,7 +1059,63 @@ def _render_bubble_chart(
 
     all_entities = sorted(df_seg["entity"].unique())
 
-    # Initialize positions and velocities
+    # 1. Identify all entities that ever enter the top 10
+    all_top_entities = set()
+    for sv in step_values:
+        top_ents = sorted(sv.keys(), key=lambda e: sv[e], reverse=True)[:TOP_N_ENTITIES]
+        all_top_entities.update(top_ents)
+    all_top_entities = sorted(list(all_top_entities))
+
+    # 2. Get peak values for these entities in the segment
+    peak_vals = {}
+    for ent in all_top_entities:
+        peak_vals[ent] = max(sv.get(ent, 0.0) for sv in step_values)
+
+    # 3. Calculate packed positions at test scale
+    R_test_max = 20.0
+    pack_input = []
+    for ent in all_top_entities:
+        val = peak_vals[ent]
+        r_test = R_test_max * np.sqrt(max(val, 0) / global_max_val)
+        pack_input.append((ent, r_test))
+    pack_input.sort(key=lambda x: x[1], reverse=True)
+
+    packed_positions = _pack_circles(pack_input, 0.0, 0.0)
+
+    # 4. Find bounding box of the packed layout
+    X_min = min(packed_positions[ent][0] - r_test for ent, r_test in pack_input)
+    X_max = max(packed_positions[ent][0] + r_test for ent, r_test in pack_input)
+    Y_min = min(packed_positions[ent][1] - r_test for ent, r_test in pack_input)
+    Y_max = max(packed_positions[ent][1] + r_test for ent, r_test in pack_input)
+
+    W_packed = X_max - X_min
+    H_packed = Y_max - Y_min
+
+    # 5. Fit packed layout to screen dimensions with margins
+    margin_x = 6.0
+    margin_y = 12.0
+    W_target = 100.0 - 2 * margin_x
+    H_target = axes_height - 2 * margin_y
+    S = min(W_target / W_packed, H_target / H_packed)
+
+    X_center_packed = (X_min + X_max) / 2.0
+    Y_center_packed = (Y_min + Y_max) / 2.0
+    X_center_screen = 50.0
+    Y_center_screen = axes_height / 2.0
+
+    # Map entities to final screen positions
+    final_positions = {}
+    for ent in all_top_entities:
+        px, py = packed_positions[ent]
+        final_positions[ent] = (
+            X_center_screen + S * (px - X_center_packed),
+            Y_center_screen + S * (py - Y_center_packed)
+        )
+
+    # Final maximum radius scale factor on screen
+    scale_factor = S * R_test_max
+
+    # 6. Initialize positions and velocities for all entities
     np.random.seed(42)
     positions = {}
     velocities = {}
@@ -1024,7 +1126,7 @@ def _render_bubble_chart(
         ])
         velocities[ent] = np.array([0.0, 0.0])
 
-    # Pre-calculate starting step radii and run warm-up steps
+    # 7. Pre-calculate starting step radii and run warm-up steps
     first_vals = step_values[0]
     sorted_ents_first = sorted(first_vals.keys(), key=lambda e: first_vals[e], reverse=True)
     top_ents_first = set(sorted_ents_first[:TOP_N_ENTITIES])
@@ -1033,7 +1135,7 @@ def _render_bubble_chart(
     for ent in all_entities:
         if ent in top_ents_first:
             val = first_vals.get(ent, 0.0)
-            initial_radii[ent] = 5.0 + np.sqrt(max(val, 0) / global_max_val) * 23.0
+            initial_radii[ent] = scale_factor * np.sqrt(max(val, 0) / global_max_val)
         else:
             initial_radii[ent] = 0.0
 
@@ -1057,9 +1159,9 @@ def _render_bubble_chart(
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        sorted_ents = sorted(all_entities, key=lambda e: intro_radii[e], reverse=True)
+        sorted_ents = sorted(all_entities, key=lambda e: intro_radii.get(e, 0.0), reverse=True)
         for ent in sorted_ents:
-            r = intro_radii[ent]
+            r = intro_radii.get(ent, 0.0)
             if r <= 2.0:
                 continue
             cx, cy = intro_positions[ent]
@@ -1123,8 +1225,8 @@ def _render_bubble_chart(
                 val = v0 + (v1 - v0) * t
                 current_vals[ent] = val
 
-                r0 = 5.0 + np.sqrt(max(v0, 0) / global_max_val) * 23.0 if ent in prev_top else 0.0
-                r1 = 5.0 + np.sqrt(max(v1, 0) / global_max_val) * 23.0 if ent in next_top else 0.0
+                r0 = scale_factor * np.sqrt(max(v0, 0) / global_max_val) if ent in prev_top else 0.0
+                r1 = scale_factor * np.sqrt(max(v1, 0) / global_max_val) if ent in next_top else 0.0
                 current_radii[ent] = r0 + (r1 - r0) * t
 
             # Advance physics engine (4 sub-steps for stability and smoothness)
@@ -1168,7 +1270,7 @@ def _render_bubble_chart(
     for _ in range(FPS * 1):
         for _ in range(4):
             _run_bubble_physics_step(positions, velocities, final_radii, center_x, center_y, axes_height, dt=0.25)
-            
+
         ax.cla()
         ax.set_facecolor("#000000")
         ax.set_xlim(0, 100)
@@ -1179,7 +1281,6 @@ def _render_bubble_chart(
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        # Re-draw last frame with continuing micro-physics settling
         bubbles = []
         for ent in all_entities:
             r = final_radii[ent]
@@ -1346,7 +1447,7 @@ def _get_flag_path(entity: str) -> Optional[str]:
     return str(flag_path)
 
 
-def _add_flag_to_axes(ax: plt.Axes, entity: str, x: float, y: float, box_alignment=(0.0, 0.5)) -> int:
+def _add_flag_to_axes(ax: plt.Axes, entity: str, x: float, y: float, box_alignment=(0.0, 0.5), size=16) -> int:
     """Fetch/load flag for entity and add to axes at (x, y) with AnnotationBbox.
     Returns the width of the resized flag image in points (pixels), or 0 if failed.
     """
@@ -1355,9 +1456,9 @@ def _add_flag_to_axes(ax: plt.Axes, entity: str, x: float, y: float, box_alignme
         return 0
     try:
         flag_img = Image.open(flag_path).convert("RGBA")
-        # Resize to standard height of 16px, keeping aspect ratio
+        # Resize standard height, keeping aspect ratio
         w, h = flag_img.size
-        new_h = 16
+        new_h = size
         new_w = int(w * (new_h / h))
         flag_img = flag_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
         
@@ -1794,3 +1895,81 @@ def _encode_short(frames_dir: Path, output_path: Path) -> None:
     if result.returncode != 0:
         raise RuntimeError(f"FFmpeg failed:\n{result.stderr}")
     print(f"[renderer_short] Encoded: {output_path}")
+
+
+def _pack_circles(entities_radii: list[tuple[str, float]], center_x: float, center_y: float):
+    """Deterministic spiral-based circle packing.
+
+    Places the largest circle at center, then places subsequent circles
+    in a tight spiral around already-placed circles.
+
+    Args:
+        entities_radii: List of (entity_name, radius) sorted by radius descending.
+        center_x: X center of the layout area.
+        center_y: Y center of the layout area.
+
+    Returns:
+        Dict mapping entity name to (x, y) position.
+    """
+    positions = {}
+    if not entities_radii:
+        return positions
+
+    # Place largest at center
+    positions[entities_radii[0][0]] = (center_x, center_y)
+
+    for idx in range(1, len(entities_radii)):
+        ent, r = entities_radii[idx]
+        best_pos = None
+        best_dist = float('inf')
+
+        # Try angles around each already-placed circle
+        for placed_ent, (px, py) in list(positions.items()):
+            placed_r = dict(entities_radii)[placed_ent]
+            target_dist = placed_r + r + 4.0  # 4 units gap
+
+            for angle_deg in range(0, 360, 15):
+                angle = np.radians(angle_deg)
+                cx = px + target_dist * np.cos(angle)
+                cy = py + target_dist * np.sin(angle)
+
+                # Check overlap with all placed circles
+                overlap = False
+                for other_ent, (ox, oy) in positions.items():
+                    other_r = dict(entities_radii)[other_ent]
+                    if np.hypot(cx - ox, cy - oy) < r + other_r + 3.0:
+                        overlap = True
+                        break
+
+                if not overlap:
+                    dist_to_center = np.hypot(cx - center_x, cy - center_y)
+                    if dist_to_center < best_dist:
+                        best_dist = dist_to_center
+                        best_pos = (cx, cy)
+
+        if best_pos is None:
+            # Fallback: spiral outward from center
+            for spiral_r in np.arange(r + 5, 80, 3):
+                for angle_deg in range(0, 360, 10):
+                    angle = np.radians(angle_deg)
+                    cx = center_x + spiral_r * np.cos(angle)
+                    cy = center_y + spiral_r * np.sin(angle)
+                    overlap = False
+                    for other_ent, (ox, oy) in positions.items():
+                        other_r_val = dict(entities_radii)[other_ent]
+                        if np.hypot(cx - ox, cy - oy) < r + other_r_val + 3.0:
+                            overlap = True
+                            break
+                    if not overlap:
+                        best_pos = (cx, cy)
+                        break
+                if best_pos:
+                    break
+
+        if best_pos is None:
+            best_pos = (center_x + idx * 8, center_y)
+
+        positions[ent] = best_pos
+
+    return positions
+
