@@ -2452,5 +2452,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-12T04:00:57.808614+00:00",
+    "topic": "The Atomic Power Battle: Which Nations Are Winning the Nuclear Energy Race?",
+    "dataset_url": "https://ourworldindata.org/grapher/nuclear-energy-generation.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 1965,
+      "end_year": 1985
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/so1ZARUKvbo",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
