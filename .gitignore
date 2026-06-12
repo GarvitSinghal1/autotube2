@@ -25,3 +25,6 @@ test_youtube.py
 
 # Local rendering outputs
 output/
+
+# Spec documents
+docs/superpowers/
