@@ -2476,5 +2476,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-12T11:45:00.339297+00:00",
+    "topic": "The AI Gold Rush: How Many Are Joining the Race?",
+    "dataset_url": "https://ourworldindata.org/grapher/attendance-major-artificial-intelligence-conferences.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2013,
+      "end_year": 2025
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/L_zRGIDXoEk",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
