@@ -2572,5 +2572,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-13T14:47:24.545084+00:00",
+    "topic": "The Solar Power Climb: Which Nations Are Leading the Green Energy Shift?",
+    "dataset_url": "https://ourworldindata.org/grapher/solar-pv-cumulative-capacity.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2004,
+      "end_year": 2024
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/EkYzdOGo80Q",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
