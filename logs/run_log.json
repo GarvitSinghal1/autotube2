@@ -2548,5 +2548,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-13T10:31:35.442571+00:00",
+    "topic": "The Global Gun Crisis: Where Do Firearm Homicides Dominate?",
+    "dataset_url": "https://ourworldindata.org/grapher/homicide-rates-from-firearms.csv",
+    "chart_type": "map_animation",
+    "extreme_segment": {
+      "start_year": 2005,
+      "end_year": 2021
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/RoPz-pZe_BY",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
