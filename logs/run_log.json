@@ -2524,5 +2524,29 @@
       "uploader": "pass"
     },
     "error": null
+  },
+  {
+    "timestamp": "2026-06-13T03:56:13.528498+00:00",
+    "topic": "The Water Divide: How Many Are Still Left Behind?",
+    "dataset_url": "https://ourworldindata.org/grapher/number-without-safe-drinking-water.csv",
+    "chart_type": "bar_chart_race",
+    "extreme_segment": {
+      "start_year": 2001,
+      "end_year": 2020
+    },
+    "long_form_url": "Skipped",
+    "short_url": "https://youtube.com/shorts/W25rwW7CADY",
+    "steps": {
+      "topic": "pass",
+      "fetcher": "pass",
+      "cleaner": "pass",
+      "analyzer": "pass",
+      "chart_selector": "pass",
+      "renderer_long": "pass",
+      "renderer_short": "pass",
+      "metadata": "pass",
+      "uploader": "pass"
+    },
+    "error": null
   }
 ]
